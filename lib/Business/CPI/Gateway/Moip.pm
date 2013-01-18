@@ -2,7 +2,6 @@ package Business::CPI::Gateway::Moip;
 use Moose;
 use Data::Printer;
 use MIME::Base64;
-use XML::LibXML;
 use Carp 'croak';
 
 our $VERSION     = '0.01';
@@ -16,14 +15,7 @@ has sandbox => (
 );
 
 has '+checkout_url' => (
-    default => sub {
-        if ( shift->sandbox ) {
-            return 'https://desenvolvedor.moip.com.br/sandbox/ws/alpha/EnviarInstrucao/Unica';
-        } else {
-            return 'https://www.moip.com.br/ws/alpha/EnviarInstrucao/Unica';
-        }
-    },
-    lazy => 1,
+   #lazy => 1,
 );
 
 has '+currency' => (
@@ -44,27 +36,36 @@ has chave_acesso => (
 
 sub BUILD {
     my ( $self ) = @_;
+    if ( $self->sandbox ) {
+        $self->checkout_url('https://desenvolvedor.moip.com.br/sandbox/ws/alpha/EnviarInstrucao/Unica');
+    } else {
+        $self->checkout_url('https://www.moip.com.br/ws/alpha/EnviarInstrucao/Unica');
+    }
 };
+
 
 # executa transacao. validar antes.
 sub notify {
-    my ( $self ) = @_;
+    my ( $self, $cart ) = @_;
 #   $self->validate($obj);
-    my $xml = $self->payment_to_xml( );
+    my $xml = $self->payment_to_xml( $cart );
     warn "Iniciando transação";
 }
 
 sub payment_to_xml {
-    my ( $self ) = @_;
+    my ( $self, $cart ) = @_;
 
     # Loop nos itens do carrinho e dados do comprador e parcelamento e boleto.. depois só pingar no moip e buscar o token
 
     my $xml;
-    warn p $self;
+    warn $self->receiver_email;
+    foreach my $item ( @{$cart->_items} ) {
+        warn p $item;
+    }
 
 #       $xml = "<EnviarInstrucao>
 #     <InstrucaoUnica TipoValidacao=\"Transparente\">
-#           <Razao>Pagamento para loja ".$templ_vars->{STORE}->{name}."</Razao>
+#           <Razao>Pagamento para loja ".$self->receiver_email."</Razao>
 #           <Valores>
 #               <Valor moeda=\"BRL\">".(($templ_vars->{order}->{use_credit}) ? $templ_vars->{order}->{with_credit} : $templ_vars->{order}->{total})."</Valor>
 #           </Valores>

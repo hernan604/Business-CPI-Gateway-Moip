@@ -7,7 +7,8 @@ use Test::More;
 BEGIN { use_ok( 'Business::CPI::Gateway::Moip' ); }
 
 ok(my $cpi = Business::CPI::Gateway::Moip->new(
-    receiver_email => 'hernannixus@hotmail.com',
+    receiver_email => 'Casa Joka',
+    sandbox => 1,
 ), 'build $cpi');
 
 isa_ok($cpi, 'Business::CPI::Gateway::Moip');
@@ -30,19 +31,26 @@ ok(my $cart = $cpi->new_cart({
 isa_ok($cart, 'Business::CPI::Cart');
 
 ok(my $item = $cart->add_item({
-    id          => 1,
+    id          => 2,
     quantity    => 1,
-    price       => 200,
-    description => 'my desc',
+    price       => 222,
+    description => 'produto2',
+}), 'build $item');
+
+ok(my $item = $cart->add_item({
+    id          => 1,
+    quantity    => 2,
+    price       => 111,
+    description => 'produto1',
 }), 'build $item');
 
 ok(my $form = $cart->get_form_to_pay(123), 'get form to pay');
 isa_ok($form, 'HTML::Element');
 
 use Data::Printer;
-warn p $cart->_items;
+#warn p $cart->_items;
 
-$cpi->notify( );
+$cpi->notify( $cart );
 
 
 done_testing();
