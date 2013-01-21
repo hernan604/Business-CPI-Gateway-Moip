@@ -3,6 +3,9 @@ use Moose;
 use Data::Printer;
 use MIME::Base64;
 use Carp 'croak';
+use bareword::filehandles;
+use indirect;
+use multidimensional;
 
 our $VERSION     = '0.01';
 
@@ -43,36 +46,61 @@ sub BUILD {
     }
 };
 
+sub is_valid {
+    my ( $self, $req ) = @_;
+    #croak 'Invalid IPN request' unless $args;
+    return 1;
+}
 
 # executa transacao. validar antes.
 sub notify {
-    my ( $self, $cart ) = @_;
-#   $self->validate($obj);
-    my $xml = $self->payment_to_xml( $cart );
+    my ( $self, $req ) = @_;
+    warn p $req;
+   #next unless $self->is_valid($req);
+    my $xml = $self->payment_to_xml( $req );
+    $self->pay;
+
+   # APOS PAGAR, tem que retornar um objeto neste estilo:
+   #my $r = {
+   #    payment_id             => $vars{invoice},
+   #    status                 => $self->_interpret_status($vars{payment_status}),
+   #    gateway_transaction_id => $vars{txn_id},
+   #    exchange_rate          => $vars{exchange_rate},
+   #    net_amount             => ($vars{settle_amount} || $vars{mc_gross}) - ($vars{mc_fee} || 0),
+   #    amount                 => $vars{mc_gross},
+   #    fee                    => $vars{mc_fee},
+   #    date                   => $vars{payment_date},
+   #    payer => {
+   #        name  => $vars{first_name} . ' ' . $vars{last_name},
+   #        email => $vars{payer_email},
+   #    }
+   #};
+
     warn "Iniciando transação";
 }
 
 sub payment_to_xml {
-    my ( $self, $cart ) = @_;
-
+    my ( $self, $req ) = @_;
     # Loop nos itens do carrinho e dados do comprador e parcelamento e boleto.. depois só pingar no moip e buscar o token
+    my @item = $req->param;
+    warn p @item;
+    foreach my $chave (@item) {
+        warn $chave;
+        warn p $req->param($chave);
+    }
 
     my $xml;
-    warn $self->receiver_email;
-    foreach my $item ( @{$cart->_items} ) {
-        warn p $item;
-    }
 
 #       $xml = "<EnviarInstrucao>
 #     <InstrucaoUnica TipoValidacao=\"Transparente\">
-#           <Razao>Pagamento para loja ".$self->receiver_email."</Razao>
+#           <Razao>Pagamento para loja ".$req->param('business')."</Razao>
 #           <Valores>
-#               <Valor moeda=\"BRL\">".(($templ_vars->{order}->{use_credit}) ? $templ_vars->{order}->{with_credit} : $templ_vars->{order}->{total})."</Valor>
+#               <Valor moeda=\"BRL\">".$req->param('total')."</Valor>
 #           </Valores>
-#           <IdProprio>".$templ_vars->{order}->{ord_number}."</IdProprio>
+#           <IdProprio>".$req->param('id-proprio')."</IdProprio>
 #           <Pagador>
-#               <Nome>".$templ_vars->{user}->{first_name}." ".$templ_vars->{user}->{last_name}."</Nome>
-#               <Email>".$templ_vars->{user}->{email}."</Email>";
+#               <Nome>".$req->param('first_name')." ".$req->param('last_name')."</Nome>
+#               <Email>".$req->param('payer_email')."</Email>";
 #       $xml .= "
 #               <IdPagador>".$pcontent->{id_carteira}."</IdPagador>";
 #       $xml .= "
