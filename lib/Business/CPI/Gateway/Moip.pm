@@ -37,6 +37,16 @@ has chave_acesso => (
     required => 1,
 );
 
+has id_proprio => (
+    is => 'rw',
+    isa => 'Any',
+);
+
+has [ qw/receiver_label receiver_email/ ] => ( #to print the sotre name on the paypment form
+    is => 'rw',
+    isa => 'Any',
+);
+
 sub BUILD {
     my ( $self ) = @_;
     if ( $self->sandbox ) {
@@ -52,13 +62,17 @@ sub is_valid {
     return 1;
 }
 
+sub pay {
+    my ( $self, $cart ) = @_;
+    my $xml = $self->payment_to_xml( $cart );
+    warn $xml;
+}
+
 # executa transacao. validar antes.
 sub notify {
     my ( $self, $req ) = @_;
-    warn p $req;
+    #warn p $req;
    #next unless $self->is_valid($req);
-    my $xml = $self->payment_to_xml( $req );
-    $self->pay;
 
    # APOS PAGAR, tem que retornar um objeto neste estilo:
    #my $r = {
@@ -80,42 +94,83 @@ sub notify {
 }
 
 sub payment_to_xml {
-    my ( $self, $req ) = @_;
+    my ( $self, $cart ) = @_;
+
     # Loop nos itens do carrinho e dados do comprador e parcelamento e boleto.. depois só pingar no moip e buscar o token
-    my @item = $req->param;
-    warn p @item;
-    foreach my $chave (@item) {
-        warn $chave;
-        warn p $req->param($chave);
-    }
+    warn p $cart;
+    warn p $cart->buyer;
+    warn $self->receiver_email;
 
     my $xml;
 
-#       $xml = "<EnviarInstrucao>
-#     <InstrucaoUnica TipoValidacao=\"Transparente\">
-#           <Razao>Pagamento para loja ".$req->param('business')."</Razao>
-#           <Valores>
-#               <Valor moeda=\"BRL\">".$req->param('total')."</Valor>
-#           </Valores>
-#           <IdProprio>".$req->param('id-proprio')."</IdProprio>
-#           <Pagador>
-#               <Nome>".$req->param('first_name')." ".$req->param('last_name')."</Nome>
-#               <Email>".$req->param('payer_email')."</Email>";
-#       $xml .= "
-#               <IdPagador>".$pcontent->{id_carteira}."</IdPagador>";
-#       $xml .= "
-#               <EnderecoCobranca>
-#                   <Logradouro>".$templ_vars->{order}->{shipping_address}."</Logradouro>
-#                   <Numero>".$templ_vars->{order}->{shipping_address_number}."</Numero>
-#                   <Complemento>".$templ_vars->{order}->{shipping_address_comp}."</Complemento>
-#                   <Bairro>".$templ_vars->{order}->{shipping_district}."</Bairro>
-#                   <Cidade>".$templ_vars->{order}->{shipping_city}."</Cidade>
-#                   <Estado>".$templ_vars->{order}->{shipping_state}."</Estado>
-#                   <Pais>BRA</Pais>
-#                   <CEP>".$templ_vars->{order}->{shipping_zip}."</CEP>
-#                   <TelefoneFixo>(".$templ_vars->{user}->{tel_1_ddd}.")".$templ_vars->{user}->{tel_1_number}."</TelefoneFixo>
-#               </EnderecoCobranca>
-#           </Pagador>";
+    $xml = "<EnviarInstrucao>
+                <InstrucaoUnica TipoValidacao=\"Transparente\">
+                    <Razao>Pagamento para loja ".$self->receiver_label." </Razao>
+                        <Valores>";
+    # valores
+    foreach my $item ( @{$cart->_items} ) {
+        $xml .=             "<Valor moeda=\"BRL\">".$item->price."</Valor>";
+    }
+    $xml .=             "</Valores>";
+
+    # id proprio
+    if ( $self->id_proprio ) {
+        $xml .=     "<IdProprio>". $self->id_proprio ."</IdProprio>";
+    }
+
+    # dados do pagador
+    if ( $cart->buyer ) {
+        $xml .= "<Pagador>";
+        if ( $cart->buyer->name ) {
+                $xml .= "<Nome>".$cart->buyer->name."</Nome>";
+        }
+        if ( $cart->buyer->email ) {
+                $xml .= "<Email>".$cart->buyer->email."</Email>";
+        }
+        if ( $cart->buyer->id_carteira ) {
+                $xml .= "<IdPagador>".$cart->buyer->id_carteira."</IdPagador>";
+        }
+        if (
+            defined $cart->buyer->address_district  ||
+            defined $cart->buyer->address_number    ||
+            defined $cart->buyer->address_country   ||
+            defined $cart->buyer->address_district  ||
+            defined $cart->buyer->address_state     ||
+            defined $cart->buyer->address_street    ||
+            defined $cart->buyer->address_zip_code
+        ) {
+            $xml .= "<EnderecoCobranca>";
+            if ( defined $cart->buyer->address_street ) {
+                $xml .= "<Logradouro>".$cart->buyer->address_street."</Logradouro>";
+            }
+            if ( defined $cart->buyer->address_number ) {
+                $xml .= "<Numero>".$cart->buyer->address_number."</Numero>";
+            }
+            if ( defined $cart->buyer->address_complement ) {
+                $xml .= "<Complemento>".$cart->buyer->address_complement."</Complemento>";
+            }
+            if ( defined $cart->buyer->address_district ) {
+                $xml .= "<Bairro>".$cart->buyer->address_district."</Bairro>";
+            }
+            if ( defined $cart->buyer->address_city ) {
+                $xml .= "<Cidade>".$cart->buyer->address_city."</Cidade>";
+            }
+            if ( defined $cart->buyer->address_state ) {
+                $xml .= "<Estado>".$cart->buyer->address_state."</Estado>";
+            }
+            if ( defined $cart->buyer->address_country ) {
+                $xml .= "<Pais>".$cart->buyer->address_country."</Pais>";
+            }
+            if ( defined $cart->buyer->address_zip_code ) {
+                $xml .= "<CEP>".$cart->buyer->address_zip_code."</CEP>";
+            }
+            if ( defined $cart->buyer->phone ) {
+                $xml .= "<TelefoneFixo>".$cart->buyer->phone."</TelefoneFixo>";
+            }
+            $xml .= "</EnderecoCobranca>";
+        }
+        $xml .= "</Pagador>";
+    }
 
 #       $xml .= "
 #       <Boleto>
@@ -138,7 +193,7 @@ sub payment_to_xml {
 #     </InstrucaoUnica>
 #   </EnviarInstrucao>";
 
-    return $xml;
+#   return $xml;
 }
 
 
