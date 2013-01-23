@@ -26,16 +26,6 @@ ok(my $cart = $cpi->new_cart({
     buyer => {
         name               => 'Mr. Buyer',
         email              => 'sender@andrewalker.net',
-        address_street     => 'Rua Itagyba Santiago',
-        address_number     => '360',
-        address_district   => 'Vila Mascote',
-        address_complement => 'Ap 35',
-        address_city       => 'São Paulo',
-        address_state      => 'SP',
-        address_country    => 'BRA',
-        address_zip_code   => '04363-040',
-        phone              => '11-9911-0022',
-        id_pagador         => 'O11O22X33X',
     }
 },{
     buyer   => Business::CPI::Buyer::Moip->new(),
@@ -46,13 +36,18 @@ isa_ok($cart, 'Business::CPI::Cart');
 
 $cart->due_date('21/12/2012');
 $cart->logo_url('http://www.nixus.com.br/img/logo_nixus.png');
-
-ok(my $item = $cart->add_item({
-    id          => 2,
-    quantity    => 1,
-    price       => 222,
-    description => 'produto2',
-}), 'build $item');
+$cart->parcelas([
+    {
+        parcelas_min => 2,
+        parcelas_max => 6,
+        juros        => 2.99,
+    },
+    {
+        parcelas_min => 7,
+        parcelas_max => 12,
+        juros        => 10.99,
+    },
+]);
 
 ok(my $item = $cart->add_item({
     id          => 1,
@@ -64,5 +59,5 @@ ok(my $item = $cart->add_item({
 my $res = $cpi->make_xml_transaction( $cart );
 warn p $res;
 
-ok( $res->{code} eq 'SUCCESS', 'vai que eh tua, pagamento feito com sucesso');
+ok( $res->{code} eq 'ERROR', 'transacao deve resultar em erro');
 done_testing();

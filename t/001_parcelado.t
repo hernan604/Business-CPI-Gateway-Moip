@@ -46,6 +46,18 @@ isa_ok($cart, 'Business::CPI::Cart');
 
 $cart->due_date('21/12/2012');
 $cart->logo_url('http://www.nixus.com.br/img/logo_nixus.png');
+$cart->parcelas([
+    {
+        parcelas_min => 2,
+        parcelas_max => 6,
+        juros        => 2.99,
+    },
+    {
+        parcelas_min => 7,
+        parcelas_max => 12,
+        juros        => 10.99,
+    },
+]);
 
 ok(my $item = $cart->add_item({
     id          => 2,
