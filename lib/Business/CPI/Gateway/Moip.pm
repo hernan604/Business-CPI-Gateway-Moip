@@ -43,7 +43,7 @@ my $cart = $cpi->new_cart({
         address_country    => 'BRA',
         address_zip_code   => '04363-040',
         phone              => '11-9911-0022',
-        id_carteira        => 'O11O22X33X',
+        id_pagador        => 'O11O22X33X',
     }
     },{
     buyer   => Business::CPI::Buyer::Moip->new(),
@@ -355,8 +355,8 @@ sub payment_to_xml {
         if ( $cart->buyer->email ) {
                 $xml .= "\n<Email>".$cart->buyer->email."</Email>";
         }
-        if ( $cart->buyer->id_carteira ) {
-                $xml .= "\n<IdPagador>".$cart->buyer->id_carteira."</IdPagador>";
+        if ( $cart->buyer->id_pagador ) {
+                $xml .= "\n<IdPagador>".$cart->buyer->id_pagador."</IdPagador>";
         }
         if (
             defined $cart->buyer->address_district  ||
