@@ -1,0 +1,3 @@
+[submodule "p5-business-cpi"]
+	path = p5-business-cpi
+	url = git@github.com:hernan604/p5-business-cpi.git

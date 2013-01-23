@@ -1,16 +1,18 @@
 package Business::CPI::Buyer::Moip;
-use Moose;
+use Moo;
 
 extends qw/Business::CPI::Buyer/;
 
 has phone => (
     is => 'rw',
-    isa => 'Any',
 );
 
 has id_carteira => (
     is => 'rw',
-    isa => 'Any',
+);
+
+has address_country    => (
+    is => 'ro',
 );
 
 1;

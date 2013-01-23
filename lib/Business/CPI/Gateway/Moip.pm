@@ -1,11 +1,12 @@
 package Business::CPI::Gateway::Moip;
-use Moose;
+use Moo;
 use Data::Printer;
 use MIME::Base64;
 use Carp 'croak';
 use bareword::filehandles;
 use indirect;
 use multidimensional;
+use HTTP::Tiny;
 
 our $VERSION     = '0.01';
 
@@ -13,59 +14,76 @@ extends 'Business::CPI::Gateway::Base';
 
 has sandbox => (
     is => 'rw',
-    isa => 'Int',
     default => 0,
 );
 
-has '+checkout_url' => (
-   #lazy => 1,
-);
-
-has '+currency' => (
-    default => sub { 'BRL' },
+has 'api_url' => (
+    is => 'rw',
 );
 
 has token_acesso => (
     is => 'rw',
-    isa => 'Str',
     required => 1,
 );
 
 has chave_acesso => (
     is => 'rw',
-    isa => 'Str',
     required => 1,
 );
 
 has id_proprio => (
     is => 'rw',
-    isa => 'Any',
 );
 
-has [ qw/receiver_label receiver_email/ ] => ( #to print the sotre name on the paypment form
+has receiver_label => ( #to print the sotre name on the paypment form
     is => 'rw',
-    isa => 'Any',
+);
+
+has receiver_email => ( #to print the sotre name on the paypment form
+    is => 'rw',
+);
+
+has ua => (
+    is => 'rw',
+    default => sub { HTTP::Tiny->new() },
 );
 
 sub BUILD {
-    my ( $self ) = @_;
+    my $self = shift;
     if ( $self->sandbox ) {
-        $self->checkout_url('https://desenvolvedor.moip.com.br/sandbox/ws/alpha/EnviarInstrucao/Unica');
+        $self->api_url('https://desenvolvedor.moip.com.br/sandbox/ws/alpha/EnviarInstrucao/Unica');
     } else {
-        $self->checkout_url('https://www.moip.com.br/ws/alpha/EnviarInstrucao/Unica');
+        $self->api_url('https://www.moip.com.br/ws/alpha/EnviarInstrucao/Unica');
     }
 };
 
 sub is_valid {
     my ( $self, $req ) = @_;
-    #croak 'Invalid IPN request' unless $args;
+    #croak 'Invalid' unless $args;
     return 1;
 }
 
-sub pay {
+sub xml_transaction {
     my ( $self, $cart ) = @_;
     my $xml = $self->payment_to_xml( $cart );
-    warn $xml;
+warn p $xml;
+#   warn p $self->chave_acesso;
+#   warn p $self->token_acesso;
+#   warn p $self->api_url;
+    my $res = $self->ua->request(
+        'POST',
+        $self->api_url,
+        {
+            headers => {
+                'Authorization' =>
+                    'Basic ' .
+                    MIME::Base64::encode($self->token_acesso.":".$self->chave_acesso,''),
+                'Content-Type' => 'application/x-www-form-urlencoded',
+            },
+            content => $xml,
+        }
+    );
+    return $res;
 }
 
 # executa transacao. validar antes.
@@ -109,26 +127,26 @@ sub payment_to_xml {
                         <Valores>";
     # valores
     foreach my $item ( @{$cart->_items} ) {
-        $xml .=             "<Valor moeda=\"BRL\">".$item->price."</Valor>";
+        $xml .=             "\n<Valor moeda=\"BRL\">".$item->price."</Valor>";
     }
-    $xml .=             "</Valores>";
+    $xml .=             "\n</Valores>";
 
     # id proprio
     if ( $self->id_proprio ) {
-        $xml .=     "<IdProprio>". $self->id_proprio ."</IdProprio>";
+        $xml .=     "\n<IdProprio>". $self->id_proprio ."</IdProprio>";
     }
 
     # dados do pagador
     if ( $cart->buyer ) {
-        $xml .= "<Pagador>";
+        $xml .= "\n<Pagador>";
         if ( $cart->buyer->name ) {
-                $xml .= "<Nome>".$cart->buyer->name."</Nome>";
+                $xml .= "\n<Nome>".$cart->buyer->name."</Nome>";
         }
         if ( $cart->buyer->email ) {
-                $xml .= "<Email>".$cart->buyer->email."</Email>";
+                $xml .= "\n<Email>".$cart->buyer->email."</Email>";
         }
         if ( $cart->buyer->id_carteira ) {
-                $xml .= "<IdPagador>".$cart->buyer->id_carteira."</IdPagador>";
+                $xml .= "\n<IdPagador>".$cart->buyer->id_carteira."</IdPagador>";
         }
         if (
             defined $cart->buyer->address_district  ||
@@ -139,61 +157,72 @@ sub payment_to_xml {
             defined $cart->buyer->address_street    ||
             defined $cart->buyer->address_zip_code
         ) {
-            $xml .= "<EnderecoCobranca>";
+            $xml .= "\n<EnderecoCobranca>";
             if ( defined $cart->buyer->address_street ) {
-                $xml .= "<Logradouro>".$cart->buyer->address_street."</Logradouro>";
+                $xml .= "\n<Logradouro>".$cart->buyer->address_street."</Logradouro>";
             }
             if ( defined $cart->buyer->address_number ) {
-                $xml .= "<Numero>".$cart->buyer->address_number."</Numero>";
+                $xml .= "\n<Numero>".$cart->buyer->address_number."</Numero>";
             }
             if ( defined $cart->buyer->address_complement ) {
-                $xml .= "<Complemento>".$cart->buyer->address_complement."</Complemento>";
+                $xml .= "\n<Complemento>".$cart->buyer->address_complement."</Complemento>";
             }
             if ( defined $cart->buyer->address_district ) {
-                $xml .= "<Bairro>".$cart->buyer->address_district."</Bairro>";
+                $xml .= "\n<Bairro>".$cart->buyer->address_district."</Bairro>";
             }
             if ( defined $cart->buyer->address_city ) {
-                $xml .= "<Cidade>".$cart->buyer->address_city."</Cidade>";
+                $xml .= "\n<Cidade>".$cart->buyer->address_city."</Cidade>";
             }
             if ( defined $cart->buyer->address_state ) {
-                $xml .= "<Estado>".$cart->buyer->address_state."</Estado>";
+                $xml .= "\n<Estado>".$cart->buyer->address_state."</Estado>";
             }
             if ( defined $cart->buyer->address_country ) {
-                $xml .= "<Pais>".$cart->buyer->address_country."</Pais>";
+                $xml .= "\n<Pais>".$cart->buyer->address_country."</Pais>";
             }
             if ( defined $cart->buyer->address_zip_code ) {
-                $xml .= "<CEP>".$cart->buyer->address_zip_code."</CEP>";
+                $xml .= "\n<CEP>".$cart->buyer->address_zip_code."</CEP>";
             }
             if ( defined $cart->buyer->phone ) {
-                $xml .= "<TelefoneFixo>".$cart->buyer->phone."</TelefoneFixo>";
+                $xml .= "\n<TelefoneFixo>".$cart->buyer->phone."</TelefoneFixo>";
             }
-            $xml .= "</EnderecoCobranca>";
+            $xml .= "\n</EnderecoCobranca>";
         }
         $xml .= "</Pagador>";
     }
 
-#       $xml .= "
-#       <Boleto>
-#           <DataVencimento>".$content->{vencimento}."T12:00:00.000-03:00</DataVencimento>
-#           <Instrucao1></Instrucao1>
-#           <Instrucao2></Instrucao2>
-#           <Instrucao3></Instrucao3>
-#           <URLLogo>".$ENV{URL_IMAGE}."/layout/img/logos/logo.png</URLLogo>
-#       </Boleto>";
+    if (
+            defined $cart->due_date
+        ) {
+        $xml .= "\n<Boleto>
+            <DataVencimento>".$cart->due_date."</DataVencimento>
+            <Instrucao1></Instrucao1>
+            <Instrucao2></Instrucao2>
+            <Instrucao3></Instrucao3>";
+        if ( defined $cart->logo_url ) {
+            $xml .= "\n<URLLogo>".$cart->logo_url."/layout/img/logos/logo.png</URLLogo>";
+        }
+        $xml .= "\n</Boleto>";
+    }
 
-#       $xml .= "
-#           <Parcelamentos>
-#               <Parcelamento>
-#                   <Recebimento>".((defined $pcontent->{parcelamento} && $pcontent->{parcelamento} == 1) ? "Parcelado" : "AVista")."</Recebimento>
-#                   <MinimoParcelas>".$templ_vars->{checkout_payment}->{CC}->{parcels}."</MinimoParcelas>
-#                   <MaximoParcelas>12</MaximoParcelas>
-#                   <Juros>".(($templ_vars->{checkout_payment}->{CC}->{noincre} == 1) ? "0" : "1.99")."</Juros>
-#               </Parcelamento>
-#           </Parcelamentos>
-#     </InstrucaoUnica>
-#   </EnviarInstrucao>";
+        $xml .= "
+            <Parcelamentos>
+              <Parcelamento>
+                <Recebimento>"; $xml .= ( defined $cart->parcelas_max && defined $cart->parcelas_min ) ? "Parcelado" : "AVista";
+                $xml .= "</Recebimento>";
+                if ( defined $cart->parcelas_min  ) {
+                    $xml .= "\n<MinimoParcelas>".$cart->parcelas_min."</MinimoParcelas>";
+                }
+                if ( defined $cart->parcelas_max ) {
+                    $xml .= "\n<MaximoParcelas>".$cart->parcelas_max."</MaximoParcelas>";
+                }
+                $xml .= "\n<Juros>"; $xml .= ( defined $cart->juros )?$cart->juros:'0'; $xml .= "</Juros>";
+        $xml .= "
+              </Parcelamento>
+            </Parcelamentos>
+          </InstrucaoUnica>
+        </EnviarInstrucao>";
 
-#   return $xml;
+    return $xml;
 }
 
 
