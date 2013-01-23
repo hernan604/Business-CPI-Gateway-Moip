@@ -1,47 +1,241 @@
 package Business::CPI::Gateway::Moip;
 use Moo;
-use Data::Printer;
 use MIME::Base64;
 use Carp 'croak';
 use bareword::filehandles;
 use indirect;
 use multidimensional;
 use HTTP::Tiny;
+use Data::Dumper;
+extends 'Business::CPI::Gateway::Base';
 
 our $VERSION     = '0.01';
 
-extends 'Business::CPI::Gateway::Base';
+=head1 NAME
+
+Business::CPI::Gateway::Moip - Inteface para pagamentos Moip
+
+=head1 SYNOPSIS
+
+use Business::CPI::Buyer::Moip;
+use Business::CPI::Cart::Moip;
+
+my $cpi = Business::CPI::Gateway::Moip->new(
+    currency        => 'BRL',
+    sandbox         => 1,
+    token_acesso    => 'YC110LQX7UQXEMQPLYOPZ1LV9EWA8VKD',
+    chave_acesso    => 'K03JZXJLOKJNX0CNL0NPGGTHTMGBFFSKNX6IUUWV',
+    receiver_email  => 'teste@casajoka.com.br',
+    receiver_label  => 'Casa Joka',
+    id_proprio      => 'ID_INTERNO_'.int rand(int rand(99999999)),
+);
+
+my $cart = $cpi->new_cart({
+    buyer => {
+        name               => 'Mr. Buyer',
+        email              => 'sender@andrewalker.net',
+        address_street     => 'Rua Itagyba Santiago',
+        address_number     => '360',
+        address_district   => 'Vila Mascote',
+        address_complement => 'Ap 35',
+        address_city       => 'São Paulo',
+        address_state      => 'SP',
+        address_country    => 'BRA',
+        address_zip_code   => '04363-040',
+        phone              => '11-9911-0022',
+        id_carteira        => 'O11O22X33X',
+    }
+    },{
+    buyer   => Business::CPI::Buyer::Moip->new(),
+    cart    => Business::CPI::Cart::Moip->new(),
+});
+
+$cart->due_date('21/12/2012');
+$cart->logo_url('http://www.nixus.com.br/img/logo_nixus.png');
+$cart->parcelas([
+    {
+        parcelas_min => 2,
+        parcelas_max => 6,
+        juros        => 2.99,
+    },
+    {
+        parcelas_min => 7,
+        parcelas_max => 12,
+        juros        => 10.99,
+    },
+]);
+
+my $item = $cart->add_item({
+    id          => 2,
+    quantity    => 1,
+    price       => 222,
+    description => 'produto2',
+});
+
+my $item = $cart->add_item({
+    id          => 1,
+    quantity    => 2,
+    price       => 111,
+    description => 'produto1',
+});
+
+my $res = $cpi->make_xml_transaction( $cart );
+warn p $res;
+    \{
+        code    "SUCCESS",
+        id      201301231157322850000001500872,
+        token   "C2R0A1V3K0P132J3Q1C1S5M7R3N2P2N8B5L0Q0M0J05070U1W5K0P018D7T2"
+    }
+
+=head1 MOIP DOCUMENTATION REFERENCE
+
+http://labs.moip.com.br
+http://labs.moip.com.br/referencia/minuto/
+http://labs.moip.com.br/referencia/pagamento_parcelado/
+
+=head1 DESCRIPTION
+
+Business::CPI::Gateway::Moip allows you to make moip transactions using Business::CPI standards.
+Currently, Moip uses XML format for transactions.
+This module will allow you to easily create a cart with items and buyer infos and payment infos. And, after setting up all this information, you will be able to:
+    ->make_xml_transaction
+and register your transaction within moip servers to obtain a moip transaction tokenid.
+
+** make_xml_transaction will return a TOKEN and code SUCCESS upon success. You will need this info so your user can checkout afterwards.
+
+=head1 MOIP TRANSACTION FLOW
+
+Here, ill try to describe how the moip transaction flow works:
+
+1. You post the paymentXML to the moip servers
+2. Moip returns a transaction token id upon success
+
+Then, you have 2 options for checkout:
+- option1 (send the user to moip site to finish transaction):
+- 3. You redirect your client to moip servers passing the transaction token id
+
+- option2 (use the moip transaction id and some javascript for checkout):
+- 3. You use some javascript with the transaction token id
+
+4. Your client pays
+
+=head1 CRUDE EXAMPLE
+
+Ive prepared this example just in case you want to test the moip payment sistem without using any other module.
+The following snippet uses only HTTP::Tiny to register the moip transaction.
+
+    my $conteudo = <<'XML';
+<EnviarInstrucao>
+  <InstrucaoUnica>
+        <Razao>Pagamento com HTTP Tiny</Razao>
+        <Valores>
+            <Valor moeda='BRL'>1.50</Valor>
+        </Valores>
+        <Pagador>
+            <IdPagador>cliente_id</IdPagador>
+        </Pagador>
+  </InstrucaoUnica>
+</EnviarInstrucao>
+XML
+    my $res = HTTP::Tiny->new( verify_SSL => $self->verify_ssl )->request(
+        'POST',
+        $self->api_url,
+        {
+            headers => {
+                'Authorization' => 'Basic ' . MIME::Base64::encode($self->token_acesso.":".$self->chave_acesso,''),
+                'Content-Type' => 'application/x-www-form-urlencoded',
+            },
+            content => $conteudo,
+        }
+    );
+    warn p $res;
+
+=cut
+
+
+=head1 ATTRIBUTES
+
+=head2 sandbox
+
+Indicates whether or not this module will use the sandbox url or production url.
+
+=cut
 
 has sandbox => (
     is => 'rw',
     default => 0,
 );
 
+=head2 api_url
+
+Holds the api_url. You DONT need to pass it, it will figure out its own url based on $self->sandbox
+
+=cut
+
 has 'api_url' => (
     is => 'rw',
 );
+
+=head2 token_acesso
+
+Moip token
+
+=cut
 
 has token_acesso => (
     is => 'rw',
     required => 1,
 );
 
+=head2 chave_acesso
+
+Moip access-key
+
+=cut
+
 has chave_acesso => (
     is => 'rw',
     required => 1,
 );
 
+=head2 id_proprio
+
+Your own internal transaction id.
+ie. e39jd2390jd92d030000001
+
+=cut
+
 has id_proprio => (
     is => 'rw',
 );
+
+=head2 receiver_label
+
+Name that will receive this payment
+ie. My Store Name
+
+=cut
 
 has receiver_label => ( #to print the sotre name on the paypment form
     is => 'rw',
 );
 
+=head2 receiver_email
+
+Email that will receive this payment
+ie. sales@mystore.com
+
+=cut
+
 has receiver_email => ( #to print the sotre name on the paypment form
     is => 'rw',
 );
+
+=head2 ua
+
+Uses HTTP::Tiny as useragent
+
+=cut
 
 has ua => (
     is => 'rw',
@@ -57,19 +251,32 @@ sub BUILD {
     }
 };
 
-sub is_valid {
-    my ( $self, $req ) = @_;
-    #croak 'Invalid' unless $args;
-    return 1;
-}
+=head2 make_xml_transaction
 
-sub xml_transaction {
+Registers the transaction on the Moip servers.
+Receives an $cart, generates the XML and register the transaction on the Moip Server.
+Returns the moip transaction token upon success.
+Returns the full raw_error when fails.
+
+Return on success:
+    {
+        code    "SUCCESS",
+        id      201301231157322850000001500872,
+        token   "C2R0A1V3K0P132J3Q1C1S5M7R3N2P2N8B5L0Q0M0J05070U1W5K0P018D7T2"
+    }
+
+Return on error:
+    {
+        code    "ERROR",
+        raw_error   "<ns1:EnviarInstrucaoUnicaResponse xmlns:ns1="http://www.moip.com.br/ws/alpha/"><Resposta><ID>201301231158069350000001500908</ID><Status>Falha</Status><Erro Codigo="2">O valor do pagamento deverá ser enviado obrigator
+    iamente</Erro></Resposta></ns1:EnviarInstrucaoUnicaResponse>"
+    }
+
+=cut
+
+sub make_xml_transaction {
     my ( $self, $cart ) = @_;
     my $xml = $self->payment_to_xml( $cart );
-warn p $xml;
-#   warn p $self->chave_acesso;
-#   warn p $self->token_acesso;
-#   warn p $self->api_url;
     my $res = $self->ua->request(
         'POST',
         $self->api_url,
@@ -83,41 +290,44 @@ warn p $xml;
             content => $xml,
         }
     );
-    return $res;
+    my $final_res = {};
+    if ( $res->{content} =~ m|\<Status\>Sucesso\</Status\>|mig ) {
+        $final_res->{ code } = 'SUCCESS';
+        #pega token:
+        my ( $token ) = $res->{content} =~ m|\<Token\>([^<]+)\</Token\>|mig;
+        $final_res->{ token } = $token if defined $token;
+        #pega id:
+        my ( $id ) = $res->{content} =~ m|\<ID\>([^<]+)\</ID\>|mig;
+        $final_res->{ id } = $id if defined $id;
+    } else {
+        $final_res->{ code } = 'ERROR';
+        $final_res->{ raw_error } = $res->{ content };
+    }
+    return $final_res;
 }
 
-# executa transacao. validar antes.
+=head2 notify
+
+Not implemented yet for Moip
+
+=cut
+
 sub notify {
     my ( $self, $req ) = @_;
-    #warn p $req;
-   #next unless $self->is_valid($req);
-
-   # APOS PAGAR, tem que retornar um objeto neste estilo:
-   #my $r = {
-   #    payment_id             => $vars{invoice},
-   #    status                 => $self->_interpret_status($vars{payment_status}),
-   #    gateway_transaction_id => $vars{txn_id},
-   #    exchange_rate          => $vars{exchange_rate},
-   #    net_amount             => ($vars{settle_amount} || $vars{mc_gross}) - ($vars{mc_fee} || 0),
-   #    amount                 => $vars{mc_gross},
-   #    fee                    => $vars{mc_fee},
-   #    date                   => $vars{payment_date},
-   #    payer => {
-   #        name  => $vars{first_name} . ' ' . $vars{last_name},
-   #        email => $vars{payer_email},
-   #    }
-   #};
-
-    warn "Iniciando transação";
 }
+
+=head2 payment_to_xml
+
+Generates an XML with the information in $cart and other attributes ie. receiver_label, id_proprio, buyer email, etc
+returns the Moip XML format
+
+=cut
 
 sub payment_to_xml {
     my ( $self, $cart ) = @_;
 
-    # Loop nos itens do carrinho e dados do comprador e parcelamento e boleto.. depois só pingar no moip e buscar o token
-    warn p $cart;
-    warn p $cart->buyer;
-    warn $self->receiver_email;
+    $self->log->debug("\$cart: " . Dumper( $cart));
+    $self->log->debug("\$cart->buyer: " . Dumper( $cart->buyer));
 
     my $xml;
 
@@ -226,68 +436,6 @@ sub payment_to_xml {
 
     return $xml;
 }
-
-
-=head1 NAME
-
-Business::CPI::Gateway::Moip - Inteface para pagamentos moip
-
-=head1 SYNOPSIS
-
-  use Business::CPI::Gateway::Moip;
-  blah blah blah
-
-
-=head1 DESCRIPTION
-
-Stub documentation for this module was created by ExtUtils::ModuleMaker.
-It looks like the author of the extension was negligent enough
-to leave the stub unedited.
-
-Blah blah blah.
-
-=head1 EXEMPLO CRU
-
-sub teste_pagamento {
-    my ( $self ) = @_;
-    my $conteudo = <<'XML';
-<EnviarInstrucao>
-  <InstrucaoUnica>
-        <Razao>Pagamento com HTTP Tiny</Razao>
-        <Valores>
-            <Valor moeda='BRL'>1.50</Valor>
-        </Valores>
-        <Pagador>
-            <IdPagador>cliente_id</IdPagador>
-        </Pagador>
-  </InstrucaoUnica>
-</EnviarInstrucao>
-XML
-    my $res = HTTP::Tiny->new( verify_SSL => $self->verify_ssl )->request(
-        'POST',
-        $self->api_url,
-        {
-            headers => {
-                'Authorization' => 'Basic ' . MIME::Base64::encode($self->token_acesso.":".$self->chave_acesso,''),
-                'Content-Type' => 'application/x-www-form-urlencoded',
-            },
-            content => $conteudo,
-        }
-    );
-    warn p $res;
-}
-
-=head1 USAGE
-
-
-
-=head1 BUGS
-
-
-
-=head1 SUPPORT
-
-
 
 =head1 AUTHOR
 

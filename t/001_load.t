@@ -10,18 +10,15 @@ use Business::CPI::Cart::Moip;
 BEGIN { use_ok( 'Business::CPI::Gateway::Moip' ); }
 
 ok(my $cpi = Business::CPI::Gateway::Moip->new(
-    currency     => 'BRL',
-    sandbox      => 1,
-    token_acesso => 'YC110LQX7UQXEMQPLYOPZ1LV9EWA8VKD',
-    chave_acesso => 'K03JZXJLOKJNX0CNL0NPGGTHTMGBFFSKNX6IUUWV',
+    currency        => 'BRL',
+    sandbox         => 1,
+    token_acesso    => 'YC110LQX7UQXEMQPLYOPZ1LV9EWA8VKD',
+    chave_acesso    => 'K03JZXJLOKJNX0CNL0NPGGTHTMGBFFSKNX6IUUWV',
+    receiver_email  => 'teste@casajoka.com.br',
+    receiver_label  => 'Casa Joka',
+    id_proprio      => 'ID_INTERNO_'.int rand(int rand(99999999)),
 
 ), 'build $cpi');
-warn p $cpi;
-warn "^^ CPI ^^";
-$cpi->receiver_email('teste@casajoka.com.br');
-$cpi->receiver_label('Casa Joka');
-$cpi->id_proprio('ID_INTERNO_'.int rand(int rand(99999999)));
-$cpi->sandbox(1);
 
 isa_ok($cpi, 'Business::CPI::Gateway::Moip');
 
@@ -49,7 +46,6 @@ isa_ok($cart, 'Business::CPI::Cart');
 
 $cart->due_date('21/12/2012');
 $cart->logo_url('http://www.nixus.com.br/img/logo_nixus.png');
-
 $cart->parcelas([
     {
         parcelas_min => 2,
@@ -77,7 +73,7 @@ ok(my $item = $cart->add_item({
     description => 'produto1',
 }), 'build $item');
 
-my $res = $cpi->xml_transaction( $cart );
+my $res = $cpi->make_xml_transaction( $cart );
 warn p $res;
 
 done_testing();
