@@ -11,15 +11,25 @@ has logo_url => (
     is => 'rw',
 );
 
-has parcelas_max => (
-    is => 'rw',
-);
 
-has parcelas_min => (
-    is => 'rw',
-);
+=head2 parcelas
 
-has juros => (
+$self->parcelas([
+    {
+        parcelas_min => 2
+        parcelas_max => 6
+        juros => 2.99
+    },
+    {
+        parcelas_min => 7
+        parcelas_max => 12
+        juros => 10.99
+    }
+]);
+
+=cut
+
+has parcelas => (
     is => 'rw',
 );
 

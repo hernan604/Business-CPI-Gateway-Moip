@@ -204,22 +204,24 @@ sub payment_to_xml {
         $xml .= "\n</Boleto>";
     }
 
-        $xml .= "
-            <Parcelamentos>
-              <Parcelamento>
-                <Recebimento>"; $xml .= ( defined $cart->parcelas_max && defined $cart->parcelas_min ) ? "Parcelado" : "AVista";
-                $xml .= "</Recebimento>";
-                if ( defined $cart->parcelas_min  ) {
-                    $xml .= "\n<MinimoParcelas>".$cart->parcelas_min."</MinimoParcelas>";
-                }
-                if ( defined $cart->parcelas_max ) {
-                    $xml .= "\n<MaximoParcelas>".$cart->parcelas_max."</MaximoParcelas>";
-                }
-                $xml .= "\n<Juros>"; $xml .= ( defined $cart->juros )?$cart->juros:'0'; $xml .= "</Juros>";
-        $xml .= "
-              </Parcelamento>
-            </Parcelamentos>
-          </InstrucaoUnica>
+    if ( defined $cart->parcelas and scalar @{ $cart->parcelas } > 0 ) {
+        $xml .= "\n<Parcelamentos>";
+        foreach my $parcela ( @{ $cart->parcelas } ) {
+            if ( defined $parcela->{parcelas_max} and defined $parcela->{parcelas_min} ) {
+                $xml .= "\n<Parcelamento>";
+                        if ( defined $parcela->{parcelas_min}  ) {
+                            $xml .= "\n<MinimoParcelas>".$parcela->{parcelas_min}."</MinimoParcelas>";
+                        }
+                        if ( defined $parcela->{parcelas_max} ) {
+                            $xml .= "\n<MaximoParcelas>".$parcela->{parcelas_max}."</MaximoParcelas>";
+                        }
+                        $xml .= "\n<Juros>"; $xml .= ( defined $parcela->{juros} )?$parcela->{juros}:'0'; $xml .= "</Juros>";
+                $xml .= "\n</Parcelamento>";
+            }
+        }
+        $xml .= "\n</Parcelamentos>";
+    }
+    $xml .= "\n</InstrucaoUnica>
         </EnviarInstrucao>";
 
     return $xml;
