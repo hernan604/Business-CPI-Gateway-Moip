@@ -37,10 +37,12 @@ ok(my $cart = $cpi->new_cart({
         phone              => '11-9911-0022',
         id_pagador         => 'O11O22X33X',
     }
-},{
-    buyer   => Business::CPI::Buyer::Moip->new(),
-    cart    => Business::CPI::Cart::Moip->new(),
-}), 'build $cart');
+},
+#   {
+#       buyer   => Business::CPI::Buyer::Moip->new(),
+#       cart    => Business::CPI::Cart::Moip->new(),
+#   }
+), 'build $cart');
 
 isa_ok($cart, 'Business::CPI::Cart');
 

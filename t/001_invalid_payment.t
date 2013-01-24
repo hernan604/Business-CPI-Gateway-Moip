@@ -27,10 +27,12 @@ ok(my $cart = $cpi->new_cart({
         name               => 'Mr. Buyer',
         email              => 'sender@andrewalker.net',
     }
-},{
-    buyer   => Business::CPI::Buyer::Moip->new(),
-    cart    => Business::CPI::Cart::Moip->new(),
-}), 'build $cart');
+},
+#   {
+#       buyer   => Business::CPI::Buyer::Moip->new(),
+#       cart    => Business::CPI::Cart::Moip->new(),
+#   }
+), 'build $cart');
 
 isa_ok($cart, 'Business::CPI::Cart');
 

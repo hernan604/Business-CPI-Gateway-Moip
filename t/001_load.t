@@ -36,16 +36,32 @@ ok(my $cart = $cpi->new_cart({
         address_zip_code   => '04363-040',
         phone              => '11-9911-0022',
         id_pagador         => 'O11O22X33X',
-    }
-},{
-    buyer   => Business::CPI::Buyer::Moip->new(),
-    cart    => Business::CPI::Cart::Moip->new(),
-}), 'build $cart');
+    },
+    mensagens => [
+        'Produto adquirido no site X',
+        'Total pago + frete - Preço: R$ 144,10',
+        'Mensagem linha3',
+    ]
+},
+#   {
+#       buyer   => Business::CPI::Buyer::Moip->new(),
+#       cart    => Business::CPI::Cart::Moip->new(),
+#   }
+), 'build $cart');
 
 isa_ok($cart, 'Business::CPI::Cart');
 
-$cart->due_date('21/12/2012');
-$cart->logo_url('http://www.nixus.com.br/img/logo_nixus.png');
+$cart->boleto({
+    expiracao       => {
+        dias => 7,
+        tipo => 'corridos', #ou uteis
+    },
+    data_vencimento => '2012/12/30T24:00:00.0-03:00',
+    instrucao1      => 'Primeira linha de instrução de pagamento do boleto bancário',
+    instrucao2      => 'Segunda linha de instrução de pagamento do boleto bancário',
+    instrucao3      => 'Terceira linha de instrução de pagamento do boleto bancário',
+    logo_url        => 'http://www.nixus.com.br/img/logo_nixus.png',
+});
 
 ok(my $item = $cart->add_item({
     id          => 2,

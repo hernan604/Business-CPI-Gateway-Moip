@@ -50,8 +50,6 @@ my $cart = $cpi->new_cart({
     cart    => Business::CPI::Cart::Moip->new(),
 });
 
-$cart->due_date('21/12/2012');
-$cart->logo_url('http://www.nixus.com.br/img/logo_nixus.png');
 $cart->parcelas([
     {
         parcelas_min => 2,
@@ -277,6 +275,8 @@ Return on error:
 sub make_xml_transaction {
     my ( $self, $cart ) = @_;
     my $xml = $self->payment_to_xml( $cart );
+    warn $xml;
+    $self->log->debug("moip-xml: " . $xml);
     my $res = $self->ua->request(
         'POST',
         $self->api_url,
@@ -332,8 +332,15 @@ sub payment_to_xml {
     my $xml;
 
     $xml = "<EnviarInstrucao>
-                <InstrucaoUnica TipoValidacao=\"Transparente\">
-                    <Razao>Pagamento para loja ".$self->receiver_label." </Razao>
+                <InstrucaoUnica TipoValidacao=\"Transparente\">";
+    if ( defined $cart->mensagens and scalar @{ $cart->mensagens } > 0 ) {
+        $xml .= "<Mensagens>";
+        foreach my $msg ( @{ $cart->mensagens } ) {
+            $xml .= "<Mensagem>".$msg."</Mensagem>";
+        }
+        $xml .= "</Mensagens>";
+    }
+           $xml .= "<Razao>Pagamento para loja ".$self->receiver_label." </Razao>
                         <Valores>";
     # valores
     foreach my $item ( @{$cart->_items} ) {
@@ -401,15 +408,31 @@ sub payment_to_xml {
     }
 
     if (
-            defined $cart->due_date
+            defined $cart->boleto
         ) {
-        $xml .= "\n<Boleto>
-            <DataVencimento>".$cart->due_date."</DataVencimento>
-            <Instrucao1></Instrucao1>
-            <Instrucao2></Instrucao2>
-            <Instrucao3></Instrucao3>";
-        if ( defined $cart->logo_url ) {
-            $xml .= "\n<URLLogo>".$cart->logo_url."/layout/img/logos/logo.png</URLLogo>";
+        $xml .= "\n<Boleto>";
+        if ( exists $cart->boleto->{ data_vencimento } ) {
+            $xml .= "\n<DataVencimento>".$cart->boleto->{ data_vencimento }."</DataVencimento>";
+        }
+        if ( exists $cart->boleto->{ instrucao1 } ) {
+            $xml .= "\n<Instrucao1>".$cart->boleto->{ instrucao1 }."</Instrucao1>";
+        }
+        if ( exists $cart->boleto->{ instrucao2 } ) {
+            $xml .= "\n<Instrucao2>".$cart->boleto->{ instrucao2 }."</Instrucao2>";
+        }
+        if ( exists $cart->boleto->{ instrucao3 } ) {
+            $xml .= "\n<Instrucao3>".$cart->boleto->{ instrucao3 }."</Instrucao3>";
+        }
+        if ( exists $cart->boleto->{ logo_url } ) {
+            $xml .= "\n<URLLogo>".$cart->boleto->{ logo_url }."</URLLogo>";
+        }
+        if ( exists $cart->boleto->{ expiracao } ) {
+            my $tipo='';
+            if ( exists $cart->boleto->{ expiracao }->{ tipo } ) {
+                $tipo = ' Tipo="Corridos"' if $cart->boleto->{ expiracao }->{ tipo } =~ m/corridos/gi;
+                $tipo = ' Tipo="Uteis"' if $cart->boleto->{ expiracao }->{ tipo } =~ m/uteis/gi;
+            }
+            $xml .= "\n<DiasExpiracao$tipo>".$cart->boleto->{ dias }."</DiasExpiracao>";
         }
         $xml .= "\n</Boleto>";
     }
@@ -431,6 +454,34 @@ sub payment_to_xml {
         }
         $xml .= "\n</Parcelamentos>";
     }
+
+    #Comissoes
+    if ( defined $cart->comissoes || defined $cart->pagador_taxa ) {
+        $xml .= "\n<Comissoes>";
+        if ( defined $cart->comissoes ) {
+            foreach my $comissao ( @{ $cart->comissoes } ) {
+                $xml .= "\n<Comissionamento>";
+                if ( exists $comissao->{razao} ) {
+                    $xml .= "\n<Razao>".$comissao->{razao}."</Razao>" if exists $comissao->{razao};
+                }
+                if ( exists $comissao->{login_moip} ) {
+                    $xml .= "\n<Comissionado><LoginMoIP>".$comissao->{login_moip}."</LoginMoIP></Comissionado>"
+                }
+                if ( exists $comissao->{valor_percentual} ) {
+                    $xml .= "\n<ValorPercentual>".$comissao->{valor_percentual}."</ValorPercentual>";
+                }
+                if ( exists $comissao->{valor_fixo} ) {
+                    $xml .= "\n<ValorFixo>".$comissao->{valor_fixo}."</ValorFixo>";
+                }
+                $xml .= "\n</Comissionamento>";
+            }
+        }
+        if ( defined $cart->pagador_taxa ) {
+            $xml .= "\n<PagadorTaxa><LoginMoIP>".$cart->pagador_taxa."</LoginMoIP></PagadorTaxa>";
+        }
+        $xml .= "\n</Comissoes>";
+    }
+
     $xml .= "\n</InstrucaoUnica>
         </EnviarInstrucao>";
 
