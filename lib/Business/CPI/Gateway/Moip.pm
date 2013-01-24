@@ -325,6 +325,10 @@ returns the Moip XML format
 
 sub payment_to_xml {
     my ( $self, $cart ) = @_;
+    #TODO:
+    #http://labs.moip.com.br/parametro/Recebedor/
+    #http://labs.moip.com.br/parametro/Pagador/
+    #é so implementar no CPI::Cart::Moip e incluir aqui no xml abaixo com as devidas validacoes
 
     $self->log->debug("\$cart: " . Dumper( $cart));
     $self->log->debug("\$cart->buyer: " . Dumper( $cart->buyer));
@@ -334,6 +338,8 @@ sub payment_to_xml {
     $xml = "<EnviarInstrucao>
                 <InstrucaoUnica TipoValidacao=\"Transparente\">";
 
+    $xml = $self->add_url_retorno       ( $xml, $cart );
+    $xml = $self->add_url_notificacao   ( $xml, $cart );
     $xml = $self->add_formas_pagamento  ( $xml, $cart );
     $xml = $self->add_mensagens_xml     ( $xml, $cart );
     $xml = $self->add_razao_xml         ( $xml, $cart );
@@ -349,6 +355,20 @@ sub payment_to_xml {
         </EnviarInstrucao>";
 
     return $xml;
+}
+
+sub add_url_retorno {
+    my ( $self, $xml , $cart ) = @_;
+    if ( defined $cart->url_retorno ) {
+        $xml .= "<URLRetorno>".$cart->url_retorno."</URLRetorno>";
+    }
+}
+
+sub add_url_notificacao {
+    my ( $self, $xml , $cart ) = @_;
+    if ( defined $cart->url_notificacao ) {
+        $xml .= "<URLNotificacao>".$cart->url_notificacao."</URLNotificacao>";
+    }
 }
 
 sub add_formas_pagamento {

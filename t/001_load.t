@@ -48,10 +48,10 @@ ok(my $cart = $cpi->new_cart({
             tipo => 'corridos', #ou uteis
         },
         data_vencimento => '2012/12/30T24:00:00.0-03:00',
-        instrucao1      => 'Primeira linha de instrução de pagamento do boleto bancário',
-        instrucao2      => 'Segunda linha de instrução de pagamento do boleto bancário',
-        instrucao3      => 'Terceira linha de instrução de pagamento do boleto bancário',
-        logo_url        => 'http://www.nixus.com.br/img/logo_nixus.png',
+        instrucao1      => 'Primeira linha de instrução de pagamento do boleto bancário',#OPT
+        instrucao2      => 'Segunda linha de instrução de pagamento do boleto bancário', #OPT
+        instrucao3      => 'Terceira linha de instrução de pagamento do boleto bancário',#OPT
+        logo_url        => 'http://www.nixus.com.br/img/logo_nixus.png',                 #OPT
     },
     formas_pagamento => [
         'BoletoBancario',
@@ -61,7 +61,8 @@ ok(my $cart = $cpi->new_cart({
         'FinanciamentoBancario',
         'CarteiraMoIP',
     ],
-
+    url_retorno => 'http://www.url_retorno.com.br',
+    url_notificacao => 'http://www.url_notificacao.com.br',
    #
    # a entrega esta dando erro: Dados do frete pelos Correios devem ser env
    #

@@ -151,4 +151,8 @@ has formas_pagamento => (
     is => 'rw',
 );
 
+
+has url_retorno     => ( is => 'rw' );
+has url_notificacao => ( is => 'rw' );
+
 1;
