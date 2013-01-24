@@ -47,7 +47,6 @@ ss = segundos (2 dígitos)
 s = fração de segundo (1 ou mais dígitos)
 TZD = fuso horário (pode ser +hh:mm ou -hh:mm)
 
-
 Referência: http://www.w3.org/TR/NOTE-datetime
 =cut
 
@@ -112,15 +111,43 @@ has pagador_taxa => (
 
 http://labs.moip.com.br/parametro/Mensagens/
 Com o node Mensagens você pode exibir mensagens adicionais no checkout Moip ao seu comprador.
-$cart->mensagens([
-    'mensagem linha 1',
-    'mensagem linha 2',
-    'mensagem linha 3',
-]);
+    $cart->mensagens([
+        'mensagem linha 1',
+        'mensagem linha 2',
+        'mensagem linha 3',
+    ]);
 
 =cut
 
 has mensagens => (
+    is => 'rw',
+);
+
+=head2 entrega
+*** ta dando erro.. melhor não usar por enquanto,provavelmente é algo bem simples.
+erro atual: Dados do frete pelos Correios devem ser env
+define as opcoes de entrega
+http://labs.moip.com.br/parametro/Entrega/
+
+=cut
+
+has entrega => (
+    is => 'rw',
+);
+
+=head2 formas_pagamento
+http://labs.moip.com.br/parametro/FormaPagamento/
+    formas_pagamento => [
+        'BoletoBancario',
+        'CartaoDeCredito',
+        'DebitoBancario',
+        'CartaoDeDebito',
+        'FinanciamentoBancario',
+        'CarteiraMoIP',
+    ],
+=cut
+
+has formas_pagamento => (
     is => 'rw',
 );
 

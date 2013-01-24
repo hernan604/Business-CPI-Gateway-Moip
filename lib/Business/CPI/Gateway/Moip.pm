@@ -333,6 +333,174 @@ sub payment_to_xml {
 
     $xml = "<EnviarInstrucao>
                 <InstrucaoUnica TipoValidacao=\"Transparente\">";
+
+    $xml = $self->add_formas_pagamento  ( $xml, $cart );
+    $xml = $self->add_mensagens_xml     ( $xml, $cart );
+    $xml = $self->add_razao_xml         ( $xml, $cart );
+    $xml = $self->add_valores_xml       ( $xml, $cart );
+    $xml = $self->add_id_proprio_xml    ( $xml, $cart );
+    $xml = $self->add_pagador_xml       ( $xml, $cart );
+    $xml = $self->add_boleto_xml        ( $xml, $cart );
+    $xml = $self->add_parcelas_xml      ( $xml, $cart );
+    $xml = $self->add_comissoes_xml     ( $xml, $cart );
+    $xml = $self->add_entrega_xml       ( $xml, $cart );
+
+    $xml .= "\n</InstrucaoUnica>
+        </EnviarInstrucao>";
+
+    return $xml;
+}
+
+sub add_formas_pagamento {
+    my ( $self, $xml , $cart ) = @_;
+    if ( defined $cart->formas_pagamento and ref $cart->formas_pagamento eq ref [] ) {
+        $xml .= "<FormasPagamento>";
+        foreach my $forma ( @{ $cart->formas_pagamento } ) {
+            $xml .= "<FormaPagamento>".$forma."</FormaPagamento>";
+        }
+        $xml .= "</FormasPagamento>";
+    }
+}
+
+sub add_entrega_xml {
+    my ( $self, $xml, $cart ) = @_;
+    if ( defined $cart->entrega ) {
+        $xml .= "<Entrega>";
+        if ( exists $cart->entrega->{destino} ) {
+            $xml .= "<Destino>".$cart->entrega->{destino}."</Destino>";
+        }
+        foreach my $e ( @{ $cart->entrega->{ calculo_frete } } ) {
+            $xml .= "<CalculoFrete>";
+            if ( exists $e->{ tipo } ) {
+                $xml .= "<Tipo>Proprio</Tipo>"  if $e->{ tipo } =~ m/proprio/ig;
+                $xml .= "<Tipo>Correios</Tipo>" if $e->{ tipo } =~ m/correio/ig;
+            }
+            if ( exists $e->{ valor_fixo } ) {
+                $xml .= "<ValorFixo>".$e->{ valor_fixo }."</ValorFixo>";
+            }
+            if ( exists $e->{ valor_percentual } ) {
+                $xml .= "<ValorPercentual>". $e->{ valor_percentual } ."</ValorPercentual>";
+            }
+            if ( exists $e->{ prazo } and
+                 exists $e->{ prazo }->{ valor } and
+                 exists $e->{ prazo }->{ tipo }
+            ) {
+                if ( $e->{ prazo }->{ tipo } =~ m/corridos/ig ) {
+                    $xml .= '<Prazo Tipo="Corridos">'.$e->{ prazo }->{ valor }.'</Prazo>' ;
+                }
+                if ($e->{ prazo }->{ tipo } =~ m/uteis/ig ) {
+                    $xml .= '<Prazo Tipo="Uteis">'.   $e->{ prazo }->{ valor }.'</Prazo>' ;
+                }
+            }
+            if ( exists $e->{ correios } ) {
+                $xml .= "<Correios>";
+                if ( exists $e->{correios}->{peso_total} ) {
+                    $xml .= "<PesoTotal>".$e->{correios}->{peso_total}."</PesoTotal>";
+                }
+                if ( exists $e->{correios}->{forma_entrega} ) {
+                    $xml .= "<FormaEntrega>".$e->{correios}->{forma_entrega}."</FormaEntrega>";
+                }
+                if ( exists $e->{correios}->{mao_propria} ) {
+                    $xml .= "<MaoPropria>".$e->{correios}->{mao_propria}."</MaoPropria>";
+                }
+                if ( exists $e->{correios}->{valor_delarado} ) {
+                    $xml .= "<ValorDeclarado>".$e->{correios}->{valor_declarado}."</ValorDeclarado>";
+                }
+                if ( exists $e->{correios}->{aviso_recebimento} ) {
+                    $xml .= "<AvisoRecebimento>".$e->{correios}->{aviso_recebimento}."</AvisoRecebimento>";
+                }
+                if ( exists $e->{correios}->{cep_origem} ) {
+                    $xml .= "<CepOrigem>".$e->{correios}->{cep_origem}."</CepOrigem>";
+                }
+                $xml .= "</Correios>";
+            }
+            $xml .= "</CalculoFrete>";
+        }
+        $xml .= "</Entrega>";
+    }
+    return $xml;
+}
+
+sub add_razao_xml {
+    my ( $self, $xml, $cart ) = @_;
+    $xml .= "<Razao>Pagamento para loja ".$self->receiver_label." </Razao>";
+    return $xml;
+}
+
+sub add_comissoes_xml {
+    my ( $self, $xml, $cart ) = @_;
+    if ( defined $cart->comissoes || defined $cart->pagador_taxa ) {
+        $xml .= "\n<Comissoes>";
+        if ( defined $cart->comissoes ) {
+            foreach my $comissao ( @{ $cart->comissoes } ) {
+                $xml .= "\n<Comissionamento>";
+                if ( exists $comissao->{razao} ) {
+                    $xml .= "\n<Razao>".$comissao->{razao}."</Razao>" if exists $comissao->{razao};
+                }
+                if ( exists $comissao->{login_moip} ) {
+                    $xml .= "\n<Comissionado><LoginMoIP>".$comissao->{login_moip}."</LoginMoIP></Comissionado>"
+                }
+                if ( exists $comissao->{valor_percentual} ) {
+                    $xml .= "\n<ValorPercentual>".$comissao->{valor_percentual}."</ValorPercentual>";
+                }
+                if ( exists $comissao->{valor_fixo} ) {
+                    $xml .= "\n<ValorFixo>".$comissao->{valor_fixo}."</ValorFixo>";
+                }
+                $xml .= "\n</Comissionamento>";
+            }
+        }
+        if ( defined $cart->pagador_taxa ) {
+            $xml .= "\n<PagadorTaxa><LoginMoIP>".$cart->pagador_taxa."</LoginMoIP></PagadorTaxa>";
+        }
+        $xml .= "\n</Comissoes>";
+    }
+    return $xml;
+}
+
+sub add_parcelas_xml {
+    my ( $self, $xml, $cart ) = @_;
+    if ( defined $cart->parcelas and scalar @{ $cart->parcelas } > 0 ) {
+        $xml .= "\n<Parcelamentos>";
+        foreach my $parcela ( @{ $cart->parcelas } ) {
+            if ( defined $parcela->{parcelas_max} and defined $parcela->{parcelas_min} ) {
+                $xml .= "\n<Parcelamento>";
+                        if ( defined $parcela->{parcelas_min}  ) {
+                            $xml .= "\n<MinimoParcelas>".$parcela->{parcelas_min}."</MinimoParcelas>";
+                        }
+                        if ( defined $parcela->{parcelas_max} ) {
+                            $xml .= "\n<MaximoParcelas>".$parcela->{parcelas_max}."</MaximoParcelas>";
+                        }
+                        $xml .= "\n<Juros>"; $xml .= ( defined $parcela->{juros} )?$parcela->{juros}:'0'; $xml .= "</Juros>";
+                $xml .= "\n</Parcelamento>";
+            }
+        }
+        $xml .= "\n</Parcelamentos>";
+    }
+    return $xml;
+}
+
+sub add_id_proprio_xml {
+    my ( $self, $xml, $cart ) = @_;
+    # id proprio
+    if ( $self->id_proprio ) {
+        $xml .=     "\n<IdProprio>". $self->id_proprio ."</IdProprio>";
+    }
+    return $xml;
+}
+
+sub add_valores_xml {
+    my ( $self, $xml, $cart ) = @_;
+    $xml .= "<Valores>";
+    # valores
+    foreach my $item ( @{$cart->_items} ) {
+        $xml .=             "\n<Valor moeda=\"BRL\">".$item->price."</Valor>";
+    }
+    $xml .=             "\n</Valores>";
+    return $xml;
+}
+
+sub add_mensagens_xml {
+    my ( $self, $xml, $cart ) = @_;
     if ( defined $cart->mensagens and scalar @{ $cart->mensagens } > 0 ) {
         $xml .= "<Mensagens>";
         foreach my $msg ( @{ $cart->mensagens } ) {
@@ -340,19 +508,11 @@ sub payment_to_xml {
         }
         $xml .= "</Mensagens>";
     }
-           $xml .= "<Razao>Pagamento para loja ".$self->receiver_label." </Razao>
-                        <Valores>";
-    # valores
-    foreach my $item ( @{$cart->_items} ) {
-        $xml .=             "\n<Valor moeda=\"BRL\">".$item->price."</Valor>";
-    }
-    $xml .=             "\n</Valores>";
+    return $xml;
+}
 
-    # id proprio
-    if ( $self->id_proprio ) {
-        $xml .=     "\n<IdProprio>". $self->id_proprio ."</IdProprio>";
-    }
-
+sub add_pagador_xml {
+    my ( $self, $xml, $cart ) = @_;
     # dados do pagador
     if ( $cart->buyer ) {
         $xml .= "\n<Pagador>";
@@ -406,7 +566,11 @@ sub payment_to_xml {
         }
         $xml .= "</Pagador>";
     }
+    return $xml;
+}
 
+sub add_boleto_xml {
+    my ( $self, $xml, $cart ) = @_;
     if (
             defined $cart->boleto
         ) {
@@ -432,59 +596,10 @@ sub payment_to_xml {
                 $tipo = ' Tipo="Corridos"' if $cart->boleto->{ expiracao }->{ tipo } =~ m/corridos/gi;
                 $tipo = ' Tipo="Uteis"' if $cart->boleto->{ expiracao }->{ tipo } =~ m/uteis/gi;
             }
-            $xml .= "\n<DiasExpiracao$tipo>".$cart->boleto->{ dias }."</DiasExpiracao>";
+            $xml .= "\n<DiasExpiracao$tipo>".$cart->boleto->{ expiracao }->{ dias }."</DiasExpiracao>";
         }
         $xml .= "\n</Boleto>";
     }
-
-    if ( defined $cart->parcelas and scalar @{ $cart->parcelas } > 0 ) {
-        $xml .= "\n<Parcelamentos>";
-        foreach my $parcela ( @{ $cart->parcelas } ) {
-            if ( defined $parcela->{parcelas_max} and defined $parcela->{parcelas_min} ) {
-                $xml .= "\n<Parcelamento>";
-                        if ( defined $parcela->{parcelas_min}  ) {
-                            $xml .= "\n<MinimoParcelas>".$parcela->{parcelas_min}."</MinimoParcelas>";
-                        }
-                        if ( defined $parcela->{parcelas_max} ) {
-                            $xml .= "\n<MaximoParcelas>".$parcela->{parcelas_max}."</MaximoParcelas>";
-                        }
-                        $xml .= "\n<Juros>"; $xml .= ( defined $parcela->{juros} )?$parcela->{juros}:'0'; $xml .= "</Juros>";
-                $xml .= "\n</Parcelamento>";
-            }
-        }
-        $xml .= "\n</Parcelamentos>";
-    }
-
-    #Comissoes
-    if ( defined $cart->comissoes || defined $cart->pagador_taxa ) {
-        $xml .= "\n<Comissoes>";
-        if ( defined $cart->comissoes ) {
-            foreach my $comissao ( @{ $cart->comissoes } ) {
-                $xml .= "\n<Comissionamento>";
-                if ( exists $comissao->{razao} ) {
-                    $xml .= "\n<Razao>".$comissao->{razao}."</Razao>" if exists $comissao->{razao};
-                }
-                if ( exists $comissao->{login_moip} ) {
-                    $xml .= "\n<Comissionado><LoginMoIP>".$comissao->{login_moip}."</LoginMoIP></Comissionado>"
-                }
-                if ( exists $comissao->{valor_percentual} ) {
-                    $xml .= "\n<ValorPercentual>".$comissao->{valor_percentual}."</ValorPercentual>";
-                }
-                if ( exists $comissao->{valor_fixo} ) {
-                    $xml .= "\n<ValorFixo>".$comissao->{valor_fixo}."</ValorFixo>";
-                }
-                $xml .= "\n</Comissionamento>";
-            }
-        }
-        if ( defined $cart->pagador_taxa ) {
-            $xml .= "\n<PagadorTaxa><LoginMoIP>".$cart->pagador_taxa."</LoginMoIP></PagadorTaxa>";
-        }
-        $xml .= "\n</Comissoes>";
-    }
-
-    $xml .= "\n</InstrucaoUnica>
-        </EnviarInstrucao>";
-
     return $xml;
 }
 

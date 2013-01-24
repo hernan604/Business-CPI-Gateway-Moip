@@ -41,7 +41,67 @@ ok(my $cart = $cpi->new_cart({
         'Produto adquirido no site X',
         'Total pago + frete - Preço: R$ 144,10',
         'Mensagem linha3',
-    ]
+    ],
+    boleto => {
+        expiracao       => {
+            dias => 7,
+            tipo => 'corridos', #ou uteis
+        },
+        data_vencimento => '2012/12/30T24:00:00.0-03:00',
+        instrucao1      => 'Primeira linha de instrução de pagamento do boleto bancário',
+        instrucao2      => 'Segunda linha de instrução de pagamento do boleto bancário',
+        instrucao3      => 'Terceira linha de instrução de pagamento do boleto bancário',
+        logo_url        => 'http://www.nixus.com.br/img/logo_nixus.png',
+    },
+    formas_pagamento => [
+        'BoletoBancario',
+        'CartaoDeCredito',
+        'DebitoBancario',
+        'CartaoDeDebito',
+        'FinanciamentoBancario',
+        'CarteiraMoIP',
+    ],
+
+   #
+   # a entrega esta dando erro: Dados do frete pelos Correios devem ser env
+   #
+   #entrega => {
+   #    destino => 'MesmoCobranca',
+   #    calculo_frete => [
+   #        {
+   #            tipo => 'proprio', #ou correios
+   #            valor_fixo => 2.30, #ou valor_percentual
+   #            prazo => {
+   #                tipo  => 'corridos', #ou uteis
+   #                valor => 2,
+   #            }
+   #        },
+   #        {
+   #            tipo             => 'correios',
+   #            valor_percentual => 12.30,
+   #            prazo => {
+   #                tipo    => 'corridos',#ou uteis
+   #                valor   => 2,
+   #            }
+   #        },
+   #        {
+   #            tipo => 'correios',
+   #            valor_percentual => 12.30,
+   #            prazo => {
+   #                tipo    => 'corridos',#ou uteis
+   #                valor   => 2,
+   #            },
+   #            correios => {
+   #                peso_total          => 12.00,
+   #                forma_entrega       => 'Sedex10', #ou sedex sedexacobrar sedexhoje
+   #                mao_propria         => 'PagadorEscolhe', #ou SIM ou NAO
+   #                valor_declarado     => 'PagadorEscolhe', #ou SIM ou NAO
+   #                aviso_recebimento   => 'PagadorEscolhe', # ou SIM ou NAO
+   #                cep_origem          => '01230-000',
+   #            },
+   #        },
+   #    ]
+   #}
 },
 #   {
 #       buyer   => Business::CPI::Buyer::Moip->new(),
@@ -51,17 +111,7 @@ ok(my $cart = $cpi->new_cart({
 
 isa_ok($cart, 'Business::CPI::Cart');
 
-$cart->boleto({
-    expiracao       => {
-        dias => 7,
-        tipo => 'corridos', #ou uteis
-    },
-    data_vencimento => '2012/12/30T24:00:00.0-03:00',
-    instrucao1      => 'Primeira linha de instrução de pagamento do boleto bancário',
-    instrucao2      => 'Segunda linha de instrução de pagamento do boleto bancário',
-    instrucao3      => 'Terceira linha de instrução de pagamento do boleto bancário',
-    logo_url        => 'http://www.nixus.com.br/img/logo_nixus.png',
-});
+
 
 ok(my $item = $cart->add_item({
     id          => 2,
