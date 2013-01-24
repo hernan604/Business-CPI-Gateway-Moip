@@ -240,6 +240,9 @@ has ua => (
     default => sub { HTTP::Tiny->new() },
 );
 
+=head1 METHODS
+=cut
+
 sub BUILD {
     my $self = shift;
     if ( $self->sandbox ) {
@@ -327,7 +330,6 @@ sub payment_to_xml {
     my ( $self, $cart ) = @_;
     #TODO:
     #http://labs.moip.com.br/parametro/Recebedor/
-    #http://labs.moip.com.br/parametro/Pagador/
     #é so implementar no CPI::Cart::Moip e incluir aqui no xml abaixo com as devidas validacoes
 
     $self->log->debug("\$cart: " . Dumper( $cart));
@@ -341,15 +343,15 @@ sub payment_to_xml {
     $xml = $self->add_url_retorno       ( $xml, $cart );
     $xml = $self->add_url_notificacao   ( $xml, $cart );
     $xml = $self->add_formas_pagamento  ( $xml, $cart );
-    $xml = $self->add_mensagens_xml     ( $xml, $cart );
-    $xml = $self->add_razao_xml         ( $xml, $cart );
-    $xml = $self->add_valores_xml       ( $xml, $cart );
-    $xml = $self->add_id_proprio_xml    ( $xml, $cart );
-    $xml = $self->add_pagador_xml       ( $xml, $cart );
-    $xml = $self->add_boleto_xml        ( $xml, $cart );
-    $xml = $self->add_parcelas_xml      ( $xml, $cart );
-    $xml = $self->add_comissoes_xml     ( $xml, $cart );
-    $xml = $self->add_entrega_xml       ( $xml, $cart );
+    $xml = $self->add_mensagens         ( $xml, $cart );
+    $xml = $self->add_razao             ( $xml, $cart );
+    $xml = $self->add_valores           ( $xml, $cart );
+    $xml = $self->add_id_proprio        ( $xml, $cart );
+    $xml = $self->add_pagador           ( $xml, $cart );
+    $xml = $self->add_boleto            ( $xml, $cart );
+    $xml = $self->add_parcelas          ( $xml, $cart );
+    $xml = $self->add_comissoes         ( $xml, $cart );
+    $xml = $self->add_entrega           ( $xml, $cart );
 
     $xml .= "\n</InstrucaoUnica>
         </EnviarInstrucao>";
@@ -382,7 +384,7 @@ sub add_formas_pagamento {
     }
 }
 
-sub add_entrega_xml {
+sub add_entrega {
     my ( $self, $xml, $cart ) = @_;
     if ( defined $cart->entrega ) {
         $xml .= "<Entrega>";
@@ -441,13 +443,13 @@ sub add_entrega_xml {
     return $xml;
 }
 
-sub add_razao_xml {
+sub add_razao {
     my ( $self, $xml, $cart ) = @_;
     $xml .= "<Razao>Pagamento para loja ".$self->receiver_label." </Razao>";
     return $xml;
 }
 
-sub add_comissoes_xml {
+sub add_comissoes {
     my ( $self, $xml, $cart ) = @_;
     if ( defined $cart->comissoes || defined $cart->pagador_taxa ) {
         $xml .= "\n<Comissoes>";
@@ -477,7 +479,7 @@ sub add_comissoes_xml {
     return $xml;
 }
 
-sub add_parcelas_xml {
+sub add_parcelas {
     my ( $self, $xml, $cart ) = @_;
     if ( defined $cart->parcelas and scalar @{ $cart->parcelas } > 0 ) {
         $xml .= "\n<Parcelamentos>";
@@ -499,7 +501,7 @@ sub add_parcelas_xml {
     return $xml;
 }
 
-sub add_id_proprio_xml {
+sub add_id_proprio {
     my ( $self, $xml, $cart ) = @_;
     # id proprio
     if ( $self->id_proprio ) {
@@ -508,7 +510,7 @@ sub add_id_proprio_xml {
     return $xml;
 }
 
-sub add_valores_xml {
+sub add_valores {
     my ( $self, $xml, $cart ) = @_;
     $xml .= "<Valores>";
     # valores
@@ -519,7 +521,7 @@ sub add_valores_xml {
     return $xml;
 }
 
-sub add_mensagens_xml {
+sub add_mensagens {
     my ( $self, $xml, $cart ) = @_;
     if ( defined $cart->mensagens and scalar @{ $cart->mensagens } > 0 ) {
         $xml .= "<Mensagens>";
@@ -531,7 +533,7 @@ sub add_mensagens_xml {
     return $xml;
 }
 
-sub add_pagador_xml {
+sub add_pagador {
     my ( $self, $xml, $cart ) = @_;
     # dados do pagador
     if ( $cart->buyer ) {
@@ -589,7 +591,7 @@ sub add_pagador_xml {
     return $xml;
 }
 
-sub add_boleto_xml {
+sub add_boleto {
     my ( $self, $xml, $cart ) = @_;
     if (
             defined $cart->boleto
@@ -622,6 +624,18 @@ sub add_boleto_xml {
     }
     return $xml;
 }
+
+=head2 query_transactions()
+TODO: http://labs.moip.com.br/referencia/consulta-de-instrucao/
+=cut
+
+sub query_transactions {}
+
+=head2 get_transaction_details()
+TODO: http://labs.moip.com.br/referencia/consulta-de-instrucao/
+=cut
+
+sub get_transaction_details {}
 
 =head1 AUTHOR
 
