@@ -364,6 +364,7 @@ sub add_url_retorno {
     if ( defined $cart->url_retorno ) {
         $xml .= "<URLRetorno>".$cart->url_retorno."</URLRetorno>";
     }
+    return $xml;
 }
 
 sub add_url_notificacao {
@@ -371,6 +372,7 @@ sub add_url_notificacao {
     if ( defined $cart->url_notificacao ) {
         $xml .= "<URLNotificacao>".$cart->url_notificacao."</URLNotificacao>";
     }
+    return $xml;
 }
 
 sub add_formas_pagamento {
@@ -382,6 +384,7 @@ sub add_formas_pagamento {
         }
         $xml .= "</FormasPagamento>";
     }
+    return $xml;
 }
 
 sub add_entrega {
