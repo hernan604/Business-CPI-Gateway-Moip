@@ -25,6 +25,7 @@ has phone => (
 =head2 id_pagador
 de acordo com os docs: http://labs.moip.com.br/referencia/integracao_xml_identificacao/
 id_pagador is the user_id on moip??
+TODO: verificar..
 =cut
 
 has id_pagador => (

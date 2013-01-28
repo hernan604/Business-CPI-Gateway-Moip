@@ -113,8 +113,6 @@ ok(my $cart = $cpi->new_cart({
 
 isa_ok($cart, 'Business::CPI::Cart');
 
-
-
 ok(my $item = $cart->add_item({
     id          => 2,
     quantity    => 1,
