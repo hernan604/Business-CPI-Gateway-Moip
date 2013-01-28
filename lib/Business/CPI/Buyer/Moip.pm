@@ -31,12 +31,4 @@ has id_pagador => (
     is => 'rw',
 );
 
-=head2 address_country
-country name abreviated, ie BRA
-=cut
-
-has address_country    => (
-    is => 'ro',
-);
-
 1;

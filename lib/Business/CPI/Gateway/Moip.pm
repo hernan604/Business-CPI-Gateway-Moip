@@ -576,7 +576,12 @@ sub add_pagador {
                 $xml .= "\n<Estado>".$cart->buyer->address_state."</Estado>";
             }
             if ( defined $cart->buyer->address_country ) {
-                $xml .= "\n<Pais>".$cart->buyer->address_country."</Pais>";
+                my $sigla = uc(
+                    Locale::Country::country_code2code(
+                        $cart->buyer->address_country, 'alpha-2', 'alpha-3'
+                    )
+                );
+                $xml .= "\n<Pais>".$sigla."</Pais>";
             }
             if ( defined $cart->buyer->address_zip_code ) {
                 $xml .= "\n<CEP>".$cart->buyer->address_zip_code."</CEP>";
