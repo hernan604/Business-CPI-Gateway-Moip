@@ -138,6 +138,20 @@ my $item = $cart->add_item({
 
 my $res = $cpi->make_xml_transaction( $cart );
 
+Return on success:
+    $res = {
+        code    "SUCCESS",
+        id      201301231157322850000001500872,
+        token   "C2R0A1V3K0P132J3Q1C1S5M7R3N2P2N8B5L0Q0M0J05070U1W5K0P018D7T2"
+    }
+
+Return on error:
+    $res = {
+        code    "ERROR",
+        raw_error   "<ns1:EnviarInstrucaoUnicaResponse xmlns:ns1="http://www.moip.com.br/ws/alpha/"><Resposta><ID>201301231158069350000001500908</ID><Status>Falha</Status><Erro Codigo="2">O valor do pagamento deverá ser enviado obrigator
+    iamente</Erro></Resposta></ns1:EnviarInstrucaoUnicaResponse>"
+    }
+
 =head1 MOIP DOCUMENTATION REFERENCE
 
 http://labs.moip.com.br
