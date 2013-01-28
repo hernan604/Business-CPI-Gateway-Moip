@@ -36,8 +36,6 @@ ok(my $cart = $cpi->new_cart({
 
 isa_ok($cart, 'Business::CPI::Cart');
 
-$cart->due_date('21/12/2012');
-$cart->logo_url('http://www.nixus.com.br/img/logo_nixus.png');
 $cart->parcelas([
     {
         parcelas_min => 2,
@@ -59,7 +57,6 @@ ok(my $item = $cart->add_item({
 }), 'build $item');
 
 my $res = $cpi->make_xml_transaction( $cart );
-warn p $res;
 
 ok( $res->{code} eq 'ERROR', 'transacao deve resultar em erro');
 done_testing();

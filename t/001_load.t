@@ -63,51 +63,52 @@ ok(my $cart = $cpi->new_cart({
     ],
     url_retorno => 'http://www.url_retorno.com.br',
     url_notificacao => 'http://www.url_notificacao.com.br',
-   #
-   # a entrega esta dando erro: Dados do frete pelos Correios devem ser env
-   #
-   #entrega => {
-   #    destino => 'MesmoCobranca',
-   #    calculo_frete => [
-   #        {
-   #            tipo => 'proprio', #ou correios
-   #            valor_fixo => 2.30, #ou valor_percentual
-   #            prazo => {
-   #                tipo  => 'corridos', #ou uteis
-   #                valor => 2,
-   #            }
-   #        },
-   #        {
-   #            tipo             => 'correios',
-   #            valor_percentual => 12.30,
-   #            prazo => {
-   #                tipo    => 'corridos',#ou uteis
-   #                valor   => 2,
-   #            }
-   #        },
-   #        {
-   #            tipo => 'correios',
-   #            valor_percentual => 12.30,
-   #            prazo => {
-   #                tipo    => 'corridos',#ou uteis
-   #                valor   => 2,
-   #            },
-   #            correios => {
-   #                peso_total          => 12.00,
-   #                forma_entrega       => 'Sedex10', #ou sedex sedexacobrar sedexhoje
-   #                mao_propria         => 'PagadorEscolhe', #ou SIM ou NAO
-   #                valor_declarado     => 'PagadorEscolhe', #ou SIM ou NAO
-   #                aviso_recebimento   => 'PagadorEscolhe', # ou SIM ou NAO
-   #                cep_origem          => '01230-000',
-   #            },
-   #        },
-   #    ]
-   #}
+    entrega => {
+        destino => 'MesmoCobranca',
+        calculo_frete => [
+            {
+                tipo => 'proprio', #ou correios
+                valor_fixo => 2.30, #ou valor_percentual
+                prazo => {
+                    tipo  => 'corridos', #ou uteis
+                    valor => 2,
+                }
+            },
+            {
+                tipo             => 'correios',
+                valor_percentual => 12.30,
+                prazo => {
+                    tipo    => 'corridos',#ou uteis
+                    valor   => 2,
+                },
+                correios => {
+                    peso_total          => 12.00,
+                    forma_entrega       => 'Sedex10', #ou sedex sedexacobrar sedexhoje
+                    mao_propria         => 'PagadorEscolhe', #ou SIM ou NAO
+                    valor_declarado     => 'PagadorEscolhe', #ou SIM ou NAO
+                    aviso_recebimento   => 'PagadorEscolhe', # ou SIM ou NAO
+                    cep_origem          => '01230-000',
+                },
+            },
+            {
+                tipo => 'correios',
+                valor_percentual => 12.30,
+                prazo => {
+                    tipo    => 'corridos',#ou uteis
+                    valor   => 2,
+                },
+                correios => {
+                    peso_total          => 12.00,
+                    forma_entrega       => 'Sedex10', #ou sedex sedexacobrar sedexhoje
+                    mao_propria         => 'PagadorEscolhe', #ou SIM ou NAO
+                    valor_declarado     => 'PagadorEscolhe', #ou SIM ou NAO
+                    aviso_recebimento   => 'PagadorEscolhe', # ou SIM ou NAO
+                    cep_origem          => '01230-000',
+                },
+            },
+        ]
+    }
 },
-#   {
-#       buyer   => Business::CPI::Buyer::Moip->new(),
-#       cart    => Business::CPI::Cart::Moip->new(),
-#   }
 ), 'build $cart');
 
 isa_ok($cart, 'Business::CPI::Cart');
@@ -131,5 +132,5 @@ ok(my $item = $cart->add_item({
 my $res = $cpi->make_xml_transaction( $cart );
 warn p $res;
 
-ok( $res->{code} eq 'SUCCESS', 'vai que eh tua, pagamento feito com sucesso');
+ok( $res->{code} eq 'SUCCESS', 'pagamento feito com sucesso');
 done_testing();

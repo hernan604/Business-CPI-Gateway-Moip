@@ -17,8 +17,10 @@ Business::CPI::Gateway::Moip - Inteface para pagamentos Moip
 
 =head1 SYNOPSIS
 
+use Data::Printer;
 use Business::CPI::Buyer::Moip;
 use Business::CPI::Cart::Moip;
+use Business::CPI::Gateway::Moip;
 
 my $cpi = Business::CPI::Gateway::Moip->new(
     currency        => 'BRL',
@@ -28,6 +30,7 @@ my $cpi = Business::CPI::Gateway::Moip->new(
     receiver_email  => 'teste@casajoka.com.br',
     receiver_label  => 'Casa Joka',
     id_proprio      => 'ID_INTERNO_'.int rand(int rand(99999999)),
+
 );
 
 my $cart = $cpi->new_cart({
@@ -40,28 +43,84 @@ my $cart = $cpi->new_cart({
         address_complement => 'Ap 35',
         address_city       => 'São Paulo',
         address_state      => 'SP',
-        address_country    => 'BRA',
+        address_country    => 'Brazil',
         address_zip_code   => '04363-040',
         phone              => '11-9911-0022',
-        id_pagador        => 'O11O22X33X',
+        id_pagador         => 'O11O22X33X',
+    },
+    mensagens => [
+        'Produto adquirido no site X',
+        'Total pago + frete - Preço: R$ 144,10',
+        'Mensagem linha3',
+    ],
+    boleto => {
+        expiracao       => {
+            dias => 7,
+            tipo => 'corridos', #ou uteis
+        },
+        data_vencimento => '2012/12/30T24:00:00.0-03:00',
+        instrucao1      => 'Primeira linha de instrução de pagamento do boleto bancário',#OPT
+        instrucao2      => 'Segunda linha de instrução de pagamento do boleto bancário', #OPT
+        instrucao3      => 'Terceira linha de instrução de pagamento do boleto bancário',#OPT
+        logo_url        => 'http://www.nixus.com.br/img/logo_nixus.png',                 #OPT
+    },
+    formas_pagamento => [
+        'BoletoBancario',
+        'CartaoDeCredito',
+        'DebitoBancario',
+        'CartaoDeDebito',
+        'FinanciamentoBancario',
+        'CarteiraMoIP',
+    ],
+    url_retorno => 'http://www.url_retorno.com.br',
+    url_notificacao => 'http://www.url_notificacao.com.br',
+    entrega => {
+        destino => 'MesmoCobranca',
+        calculo_frete => [
+            {
+                tipo => 'proprio', #ou correios
+                valor_fixo => 2.30, #ou valor_percentual
+                prazo => {
+                    tipo  => 'corridos', #ou uteis
+                    valor => 2,
+                }
+            },
+            {
+                tipo             => 'correios',
+                valor_percentual => 12.30,
+                prazo => {
+                    tipo    => 'corridos',#ou uteis
+                    valor   => 2,
+                },
+                correios => {
+                    peso_total          => 12.00,
+                    forma_entrega       => 'Sedex10', #ou sedex sedexacobrar sedexhoje
+                    mao_propria         => 'PagadorEscolhe', #ou SIM ou NAO
+                    valor_declarado     => 'PagadorEscolhe', #ou SIM ou NAO
+                    aviso_recebimento   => 'PagadorEscolhe', # ou SIM ou NAO
+                    cep_origem          => '01230-000',
+                },
+            },
+            {
+                tipo => 'correios',
+                valor_percentual => 12.30,
+                prazo => {
+                    tipo    => 'corridos',#ou uteis
+                    valor   => 2,
+                },
+                correios => {
+                    peso_total          => 12.00,
+                    forma_entrega       => 'Sedex10', #ou sedex sedexacobrar sedexhoje
+                    mao_propria         => 'PagadorEscolhe', #ou SIM ou NAO
+                    valor_declarado     => 'PagadorEscolhe', #ou SIM ou NAO
+                    aviso_recebimento   => 'PagadorEscolhe', # ou SIM ou NAO
+                    cep_origem          => '01230-000',
+                },
+            },
+        ]
     }
-    },{
-    buyer   => Business::CPI::Buyer::Moip->new(),
-    cart    => Business::CPI::Cart::Moip->new(),
-});
-
-$cart->parcelas([
-    {
-        parcelas_min => 2,
-        parcelas_max => 6,
-        juros        => 2.99,
-    },
-    {
-        parcelas_min => 7,
-        parcelas_max => 12,
-        juros        => 10.99,
-    },
-]);
+},
+);
 
 my $item = $cart->add_item({
     id          => 2,
@@ -78,18 +137,16 @@ my $item = $cart->add_item({
 });
 
 my $res = $cpi->make_xml_transaction( $cart );
-warn p $res;
-    \{
-        code    "SUCCESS",
-        id      201301231157322850000001500872,
-        token   "C2R0A1V3K0P132J3Q1C1S5M7R3N2P2N8B5L0Q0M0J05070U1W5K0P018D7T2"
-    }
 
 =head1 MOIP DOCUMENTATION REFERENCE
 
 http://labs.moip.com.br
 http://labs.moip.com.br/referencia/minuto/
 http://labs.moip.com.br/referencia/pagamento_parcelado/
+
+=head1 SANDBOX
+
+Register yourself in the Moip sandbox: http://labs.moip.com.br/
 
 =head1 DESCRIPTION
 
@@ -100,6 +157,7 @@ This module will allow you to easily create a cart with items and buyer infos an
 and register your transaction within moip servers to obtain a moip transaction tokenid.
 
 ** make_xml_transaction will return a TOKEN and code SUCCESS upon success. You will need this info so your user can checkout afterwards.
+* see the tests for examples
 
 =head1 MOIP TRANSACTION FLOW
 
@@ -364,6 +422,7 @@ sub add_url_retorno {
     if ( defined $cart->url_retorno ) {
         $xml .= "<URLRetorno>".$cart->url_retorno."</URLRetorno>";
     }
+    return $xml;
 }
 
 sub add_url_notificacao {
@@ -371,6 +430,7 @@ sub add_url_notificacao {
     if ( defined $cart->url_notificacao ) {
         $xml .= "<URLNotificacao>".$cart->url_notificacao."</URLNotificacao>";
     }
+    return $xml;
 }
 
 sub add_formas_pagamento {
@@ -382,6 +442,7 @@ sub add_formas_pagamento {
         }
         $xml .= "</FormasPagamento>";
     }
+    return $xml;
 }
 
 sub add_entrega {
@@ -631,7 +692,74 @@ sub add_boleto {
 }
 
 =head2 query_transactions()
-TODO: http://labs.moip.com.br/referencia/consulta-de-instrucao/
+TODO: http://labs.moip.com.br/blog/saiba-quais-foram-suas-ultimas-transacoes-no-moip-sem-sair-do-seu-site-com-o-moipstatus/
+TODO: https://github.com/moiplabs/moip-php/blob/master/lib/MoipStatus.php
+
+*** Não fiz pois o moip tem tudo via api e parece que não tem esta parte via api...
+não entendo porque eles tem a faca e o queijo na mão (sao donos da API) e fazem essa verificacao
+de status atraves de markup... e outra, nem para colocar um ID no seletor... o seletor usado
+traz uns 5 itens diferentes.. ou seja, tem que usar uns nht-child(x)... absurdo :P
+
+mas o código está ai abaixo para quem tiver interesse
+
+=head2 *** Codigo cru para o query_transactions
+
+moipstatus.php: https://github.com/moiplabs/moip-php/blob/master/lib/MoipStatus.php
+
+use HTTP::Tiny;
+use MIME::Base64;
+use Data::Printer;
+use HTTP::Request::Common qw(POST);
+use Mojo::DOM;
+my $url_login = "https://www.moip.com.br/j_acegi_security_check";
+my $login = 'XXXXXXXXXXX';
+my $pass = "XXXXXXX";
+my $url_transactions = 'https://www.moip.com.br/rest/reports/last-transactions';
+
+my $form_login = [
+    j_password => $pass,
+    j_username => $login,
+];
+
+my $res = HTTP::Tiny->new( verify_SSL => 0 )->request(
+    'POST',
+    $url_login,
+    {
+        headers => {
+            'Authorization' => 'Basic ' . MIME::Base64::encode($login.":".$pass,''),
+            'Content-Type' => 'application/x-www-form-urlencoded',
+        },
+        content => POST( $url_login, [], Content => $form_login )->content,
+    }
+);
+warn p $res;
+
+warn "login fail" and die if $res->{ headers }->{ location } =~ m/fail/ig;
+
+my $res2 = HTTP::Tiny->new( verify_SSL => 0 )->request(
+    'GET',
+    $res->{headers}->{location}
+);
+# warn p $res2;
+my $dom = Mojo::DOM->new($res2->{content});
+
+SALDO_STATS: {
+    my $saldo       = $dom->at('div.textoCinza11 b.textoAzul11:nth-child(3)');
+    my $a_receber   = $dom->at('div.textoCinza11 b.textoAzul11:nth-child(10)');
+    my $stats = {
+        saldo           => (defined $saldo)     ?   $saldo->text     : undef,
+        saldo_a_receber => (defined $a_receber) ?   $a_receber->text : undef,
+    };
+    warn p $stats;
+}
+
+LAST_TRANSACTIONS:{
+    my $selector = 'div.conteudo>div:eq(1)>div:eq(1)>div:eq(1)>div:eq(0) div.box table[cellpadding=5]>tbody tr';
+    my $nenhuma = $dom->at( $selector );
+    warn p $nenhuma;
+}
+
+
 =cut
 
 sub query_transactions {}

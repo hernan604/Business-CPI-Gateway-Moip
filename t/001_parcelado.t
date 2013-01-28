@@ -32,22 +32,16 @@ ok(my $cart = $cpi->new_cart({
         address_complement => 'Ap 35',
         address_city       => 'São Paulo',
         address_state      => 'SP',
-        address_country    => 'BRA',
+        address_country    => 'Brazil',
         address_zip_code   => '04363-040',
         phone              => '11-9911-0022',
         id_pagador         => 'O11O22X33X',
     }
 },
-#   {
-#       buyer   => Business::CPI::Buyer::Moip->new(),
-#       cart    => Business::CPI::Cart::Moip->new(),
-#   }
 ), 'build $cart');
 
 isa_ok($cart, 'Business::CPI::Cart');
 
-$cart->due_date('21/12/2012');
-$cart->logo_url('http://www.nixus.com.br/img/logo_nixus.png');
 $cart->parcelas([
     {
         parcelas_min => 2,
@@ -76,7 +70,6 @@ ok(my $item = $cart->add_item({
 }), 'build $item');
 
 my $res = $cpi->make_xml_transaction( $cart );
-warn p $res;
 
 ok( $res->{code} eq 'SUCCESS', 'vai que eh tua, pagamento feito com sucesso');
 done_testing();
