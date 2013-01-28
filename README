@@ -1,6 +1,7 @@
 Business::CPI::Gateway::Moip.pm 
 
 Para efetuar pagamentos moip com perl
+** veja exemplo com Business:CPI em pay_business_cpi.sh
 
 use Data::Printer;
 use Business::CPI::Buyer::Moip;

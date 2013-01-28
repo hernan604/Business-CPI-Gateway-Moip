@@ -154,6 +154,8 @@ Return on error:
 
 =head1 EXAMPLE USING Business:CPI
 
+** tem um outro exemplo no arquivo pay_business_cpi.sh
+
 The following example will use Business::CPI directly
 
 use Business::CPI;
