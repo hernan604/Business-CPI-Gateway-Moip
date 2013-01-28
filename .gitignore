@@ -8,7 +8,6 @@
 blib*
 inc*
 *_local*
-testar.sh
 dotest.sh
 nv2_api_local.conf
 META*
