@@ -416,7 +416,7 @@ Return on error:
 sub make_xml_transaction {
     my ( $self, $cart ) = @_;
     my $xml = $self->payment_to_xml( $cart );
-    warn $xml;
+    #warn $xml;
     $self->log->debug("moip-xml: " . $xml);
     my $res = $self->ua->request(
         'POST',
