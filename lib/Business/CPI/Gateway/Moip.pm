@@ -299,7 +299,7 @@ Indicates whether or not this module will use the sandbox url or production url.
 
 has sandbox => (
     is => 'rw',
-    default => 0,
+    default => sub { return 0 },
 );
 
 =head2 api_url

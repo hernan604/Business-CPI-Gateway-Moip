@@ -21,5 +21,8 @@ WriteMakefile(
         'multidimensional'      => 0,
         'HTTP::Tiny'            => 0,
         'Data::Dumper'          => 0,
+        'bareword::filehandles' => 0,
+        'Email::Valid'          => 0,
+        'IO::Socket::SSL'       => 0,
     },
 );
