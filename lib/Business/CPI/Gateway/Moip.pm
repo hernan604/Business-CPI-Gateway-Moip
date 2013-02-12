@@ -782,7 +782,12 @@ traz uns 5 itens diferentes.. ou seja, tem que usar uns nht-child(x)... absurdo 
 
 mas o código está ai abaixo para quem tiver interesse
 
-=head2 *** Codigo cru para o query_transactions
+=head2 query_transactions
+*** NOT IMPLEMENTED, (YET)
+
+Thats how it can be done today... making login and parsing the welcome html screen. (no good)
+Not good because they dont have it on their api... and its not good to rely on markup to read
+this sort of important values.
 
 moipstatus.php: https://github.com/moiplabs/moip-php/blob/master/lib/MoipStatus.php
 
@@ -856,7 +861,7 @@ sub get_transaction_details {}
     CPAN ID: HERNAN
     -
     hernan@cpan.org
-    http://www.movimentoperl.com.br
+    http://github.com/hernan604
 
 =head1 COPYRIGHT
 
@@ -866,15 +871,15 @@ it and/or modify it under the same terms as Perl itself.
 The full text of the license can be found in the
 LICENSE file included with this module.
 
+=head1 SPONSOR
+
+http://www.nixus.com.br
 
 =head1 SEE ALSO
 
 perl(1).
 
 =cut
-
-#################### main pod documentation end ###################
-
 
 1;
 # The preceding line will help the module return a true value

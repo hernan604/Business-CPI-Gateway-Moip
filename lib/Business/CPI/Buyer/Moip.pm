@@ -10,7 +10,6 @@ Business::CPI::Buyer::Moip
 =head1 DESCRIPTION
 
 extends Business::CPI::Buyer
-and adds some extra attributes specific to moip
 
 =head1 ATTRIBUTES
 
@@ -24,8 +23,6 @@ has phone => (
 
 =head2 id_pagador
 de acordo com os docs: http://labs.moip.com.br/referencia/integracao_xml_identificacao/
-id_pagador is the user_id on moip??
-TODO: verificar..
 =cut
 
 has id_pagador => (

@@ -1,8 +1,12 @@
+Changes
+lib/Business/CPI/Buyer/Moip.pm
+lib/Business/CPI/Cart/Moip.pm
+lib/Business/CPI/Gateway/Moip.pm
+LICENSE
+Makefile.PL
 MANIFEST
 README
-LICENSE
-Todo
-Changes
-Makefile.PL
-lib/Business/CPI/Gateway/Moip.pm
+t/001_invalid_payment.t
 t/001_load.t
+t/001_parcelado.t
+t/005_comissionamento.t

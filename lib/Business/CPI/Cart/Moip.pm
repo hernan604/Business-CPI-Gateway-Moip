@@ -10,7 +10,8 @@ Business::CPI::Cart::Moip
 =head1 DESCRIPTION
 
 extends Business::CPI::Cart
-and adds some extra attributes specific to moip
+
+=head1 ATTRIBUTES
 
 =head2 boleto
 
@@ -124,8 +125,6 @@ has mensagens => (
 );
 
 =head2 entrega
-*** ta dando erro.. melhor não usar por enquanto,provavelmente é algo bem simples.
-erro atual: Dados do frete pelos Correios devem ser env
 define as opcoes de entrega
 http://labs.moip.com.br/parametro/Entrega/
 
@@ -136,7 +135,7 @@ has entrega => (
 );
 
 =head2 formas_pagamento
-http://labs.moip.com.br/parametro/FormaPagamento/
+mais infos: http://labs.moip.com.br/parametro/FormaPagamento/
     formas_pagamento => [
         'BoletoBancario',
         'CartaoDeCredito',
