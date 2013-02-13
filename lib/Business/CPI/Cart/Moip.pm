@@ -3,6 +3,10 @@ use Moo;
 
 extends qw/Business::CPI::Cart/;
 
+=pod
+
+=encoding utf-8
+
 =head1 NAME
 
 Business::CPI::Cart::Moip
