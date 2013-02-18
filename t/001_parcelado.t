@@ -14,8 +14,8 @@ ok(my $cpi = Business::CPI::Gateway::Moip->new(
     sandbox         => 1,
     token_acesso    => 'YC110LQX7UQXEMQPLYOPZ1LV9EWA8VKD',
     chave_acesso    => 'K03JZXJLOKJNX0CNL0NPGGTHTMGBFFSKNX6IUUWV',
-    receiver_email  => 'teste@casajoka.com.br',
-    receiver_label  => 'Casa Joka',
+    receiver_email  => 'teste@xxxxx.com.br',
+    receiver_label  => 'Lojas X',
     id_proprio      => 'ID_INTERNO_'.int rand(int rand(99999999)),
 
 ), 'build $cpi');
@@ -71,5 +71,10 @@ ok(my $item = $cart->add_item({
 
 my $res = $cpi->make_xml_transaction( $cart );
 
-ok( $res->{code} eq 'SUCCESS', 'vai que eh tua, pagamento feito com sucesso');
+ok( $res->{code} eq 'SUCCESS', 'pagamento feito com sucesso');
+
+
+#my $detail = $cpi->get_transaction_details( $res->{ id } );
+#warn p $detail;
+
 done_testing();

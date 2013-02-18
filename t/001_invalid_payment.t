@@ -14,8 +14,8 @@ ok(my $cpi = Business::CPI::Gateway::Moip->new(
     sandbox         => 1,
     token_acesso    => 'YC110LQX7UQXEMQPLYOPZ1LV9EWA8VKD',
     chave_acesso    => 'K03JZXJLOKJNX0CNL0NPGGTHTMGBFFSKNX6IUUWV',
-    receiver_email  => 'teste@casajoka.com.br',
-    receiver_label  => 'Casa Joka',
+    receiver_email  => 'teste@xxxxx.com.br',
+    receiver_label  => 'Lojas X',
     id_proprio      => 'ID_INTERNO_'.int rand(int rand(99999999)),
 
 ), 'build $cpi');
@@ -28,10 +28,6 @@ ok(my $cart = $cpi->new_cart({
         email              => 'sender@andrewalker.net',
     }
 },
-#   {
-#       buyer   => Business::CPI::Buyer::Moip->new(),
-#       cart    => Business::CPI::Cart::Moip->new(),
-#   }
 ), 'build $cart');
 
 isa_ok($cart, 'Business::CPI::Cart');
