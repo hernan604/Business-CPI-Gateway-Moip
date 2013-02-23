@@ -12,17 +12,17 @@ BEGIN { use_ok( 'Business::CPI::Gateway::Moip' ); }
 ok(my $cpi = Business::CPI::Gateway::Moip->new(
     currency        => 'BRL',
     sandbox         => 1,
-    token_acesso    => 'YC110LQX7UQXEMQPLYOPZ1LV9EWA8VKD',
-    chave_acesso    => 'K03JZXJLOKJNX0CNL0NPGGTHTMGBFFSKNX6IUUWV',
+    token    => 'YC110LQX7UQXEMQPLYOPZ1LV9EWA8VKD',
+    key    => 'K03JZXJLOKJNX0CNL0NPGGTHTMGBFFSKNX6IUUWV',
     receiver_email  => 'teste@xxxxx.com.br',
     receiver_label  => 'Lojas X',
-    id_proprio      => 'ID_INTERNO_'.int rand(int rand(99999999)),
 
 ), 'build $cpi');
 
 isa_ok($cpi, 'Business::CPI::Gateway::Moip');
 
 ok(my $cart = $cpi->new_cart({
+    payment_id      => 'ID_INTERNO_'.int rand(int rand(99999999)),
     buyer => {
         name               => 'Mr. Buyer',
         email              => 'sender@andrewalker.net',
@@ -69,7 +69,7 @@ ok(my $item = $cart->add_item({
     description => 'produto1',
 }), 'build $item');
 
-my $res = $cpi->make_xml_transaction( $cart );
+my $res = $cpi->get_checkout_code( $cart );
 
 ok( $res->{code} eq 'SUCCESS', 'pagamento feito com sucesso');
 

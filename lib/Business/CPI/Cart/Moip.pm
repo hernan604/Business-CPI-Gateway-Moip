@@ -55,10 +55,13 @@ TZD = fuso horário (pode ser +hh:mm ou -hh:mm)
 Referência: http://www.w3.org/TR/NOTE-datetime
 =cut
 
-has boleto => (
+has payment_id => (
     is => 'rw',
 );
 
+has bank_slip => (
+    is => 'rw',
+);
 
 =head2 parcelas
 
@@ -134,7 +137,7 @@ http://labs.moip.com.br/parametro/Entrega/
 
 =cut
 
-has entrega => (
+has shipping => (
     is => 'rw',
 );
 

@@ -73,4 +73,5 @@ my $res = $cpi->get_checkout_code( $cart );
 warn p $res;
 
 ok( length($res) == 60, 'pagamento feito com sucesso');
+
 done_testing();

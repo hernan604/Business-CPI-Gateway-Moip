@@ -33,11 +33,11 @@ Business::CPI::Gateway::Moip - Inteface para pagamentos Moip
     my $cpi = Business::CPI::Gateway::Moip->new(
         currency        => 'BRL',
         sandbox         => 1,
-        token_acesso    => 'YC110LQX7UQXEMQPLYOPZ1LV9EWA8VKD',
-        chave_acesso    => 'K03JZXJLOKJNX0CNL0NPGGTHTMGBFFSKNX6IUUWV',
+        token    => 'YC110LQX7UQXEMQPLYOPZ1LV9EWA8VKD',
+        key    => 'K03JZXJLOKJNX0CNL0NPGGTHTMGBFFSKNX6IUUWV',
         receiver_email  => 'teste@casajoka.com.br',
         receiver_label  => 'Casa Joka',
-        id_proprio      => 'ID_INTERNO_'.int rand(int rand(99999999)),
+        payment_id      => 'ID_INTERNO_'.int rand(int rand(99999999)),
 
     );
 
@@ -67,9 +67,9 @@ Business::CPI::Gateway::Moip - Inteface para pagamentos Moip
                 tipo => 'corridos', #ou uteis
             },
             data_vencimento => '2012/12/30T24:00:00.0-03:00',
-            instrucao1      => 'Primeira linha de instrução de pagamento do boleto bancário',#OPT
-            instrucao2      => 'Segunda linha de instrução de pagamento do boleto bancário', #OPT
-            instrucao3      => 'Terceira linha de instrução de pagamento do boleto bancário',#OPT
+            intruction_line_1      => 'Primeira linha de instrução de pagamento do boleto bancário',#OPT
+            intruction_line_2      => 'Segunda linha de instrução de pagamento do boleto bancário', #OPT
+            intruction_line_3      => 'Terceira linha de instrução de pagamento do boleto bancário',#OPT
             logo_url        => 'http://www.nixus.com.br/img/logo_nixus.png',                 #OPT
         },
         formas_pagamento => [
@@ -144,7 +144,7 @@ Business::CPI::Gateway::Moip - Inteface para pagamentos Moip
         description => 'produto1',
     });
 
-    my $res = $cpi->make_xml_transaction( $cart );
+    my $res = $cpi->get_checkout_code( $cart );
 
     Return on success:
         $res = {
@@ -170,11 +170,11 @@ The following example will use Business::CPI directly
     my $moip = Business::CPI->new(
         gateway        => "Moip",
         sandbox         => 1,
-        token_acesso    => 'YC110LQX7UQXEMQPLYOPZ1LV9EWA8VKD',
-        chave_acesso    => 'K03JZXJLOKJNX0CNL0NPGGTHTMGBFFSKNX6IUUWV',
+        token    => 'YC110LQX7UQXEMQPLYOPZ1LV9EWA8VKD',
+        key    => 'K03JZXJLOKJNX0CNL0NPGGTHTMGBFFSKNX6IUUWV',
         receiver_email  => 'teste@casajoka.com.br',
         receiver_label  => 'Casa Joka',
-        id_proprio      => 'ID_INTERNO_'.int rand(int rand(99999999)),
+        payment_id      => 'ID_INTERNO_'.int rand(int rand(99999999)),
     );
 
     my $cart = $moip->new_cart({
@@ -221,7 +221,7 @@ The following example will use Business::CPI directly
         description => 'produto1',
     });
 
-    my $res = $moip->make_xml_transaction( $cart );
+    my $res = $moip->get_checkout_code( $cart );
     warn p $res;
 
 =head1 MOIP DOCUMENTATION REFERENCE
@@ -244,11 +244,11 @@ Currently, Moip uses XML format for transactions.
 
 This module will allow you to easily create a cart with items and buyer infos and payment infos. And, after setting up all this information, you will be able to:
 
-    ->make_xml_transaction
+    ->get_checkout_code
 
 and register your transaction within moip servers to obtain a moip transaction tokenid.
 
-** make_xml_transaction will return a TOKEN and code SUCCESS upon success. You will need this info so your user can checkout afterwards.
+** get_checkout_code will return a TOKEN and code SUCCESS upon success. You will need this info so your user can checkout afterwards.
 
 * see the tests for examples
 
@@ -292,7 +292,7 @@ The following snippet uses only HTTP::Tiny to register the moip transaction.
             $self->api_url,
             {
                 headers => {
-                    'Authorization' => 'Basic ' . MIME::Base64::encode($self->token_acesso.":".$self->chave_acesso,''),
+                    'Authorization' => 'Basic ' . MIME::Base64::encode($self->token.":".$self->key,''),
                     'Content-Type' => 'application/x-www-form-urlencoded',
                 },
                 content => $conteudo,
@@ -312,6 +312,11 @@ Indicates whether or not this module will use the sandbox url or production url.
 =cut
 
 has sandbox => (
+    is => 'rw',
+    default => sub { return 0 },
+);
+
+has transparent => (
     is => 'rw',
     default => sub { return 0 },
 );
@@ -337,38 +342,34 @@ has 'form_url' => (
     is => 'rw',
 );
 
-=head2 token_acesso
+=head2 token
 
 Moip token
 
 =cut
 
-has token_acesso => (
+has token => (
     is => 'rw',
     required => 1,
 );
 
-=head2 chave_acesso
+=head2 key
 
 Moip access-key
 
 =cut
 
-has chave_acesso => (
+has key => (
     is => 'rw',
     required => 1,
 );
 
-=head2 id_proprio
+=head2 payment_id
 
 Your own internal transaction id.
 ie. e39jd2390jd92d030000001
 
 =cut
-
-has id_proprio => (
-    is => 'rw',
-);
 
 =head2 receiver_label
 
@@ -417,7 +418,7 @@ sub BUILD {
     }
 };
 
-=head2 make_xml_transaction
+=head2 get_checkout_code
 
 Registers the transaction on the Moip servers.
 
@@ -445,10 +446,10 @@ Return on error:
 
 =cut
 
-sub make_xml_transaction {
+sub get_checkout_code {
     my ( $self, $cart ) = @_;
     my $xml = $self->payment_to_xml( $cart );
-    #warn $xml;
+    warn $xml;
     $self->log->debug("moip-xml: " . $xml);
     my $res = $self->ua->request(
         'POST',
@@ -457,12 +458,15 @@ sub make_xml_transaction {
             headers => {
                 'Authorization' =>
                     'Basic ' .
-                    MIME::Base64::encode($self->token_acesso.":".$self->chave_acesso,''),
+                    MIME::Base64::encode($self->token.":".$self->key,''),
                 'Content-Type' => 'application/x-www-form-urlencoded',
             },
             content => $xml,
         }
     );
+
+    warn $res->{content};
+
     my $final_res = {};
     if ( $res->{content} =~ m|\<Status\>Sucesso\</Status\>|mig ) {
         $final_res->{ code } = 'SUCCESS';
@@ -476,7 +480,8 @@ sub make_xml_transaction {
         $final_res->{ code } = 'ERROR';
         $final_res->{ raw_error } = $res->{ content };
     }
-    return $final_res;
+
+    return $final_res->{token};
 }
 
 =head2 notify
@@ -491,7 +496,7 @@ sub notify {
 
 =head2 payment_to_xml
 
-Generates an XML with the information in $cart and other attributes ie. receiver_label, id_proprio, buyer email, etc
+Generates an XML with the information in $cart and other attributes ie. receiver_label, payment_id, buyer email, etc
 
 returns the Moip XML format
 
@@ -520,7 +525,7 @@ sub payment_to_xml {
     $self->add_mensagens2         ( $xml2 , $cart , $instrucao_unica );
     $self->add_razao2             ( $xml2 , $cart , $instrucao_unica );
     $self->add_valores2           ( $xml2 , $cart , $instrucao_unica );
-    $self->add_id_proprio2        ( $xml2 , $cart , $instrucao_unica );
+    $self->add_payment_id2        ( $xml2 , $cart , $instrucao_unica );
     $self->add_pagador2           ( $xml2 , $cart , $instrucao_unica );
     $self->add_boleto2            ( $xml2 , $cart , $instrucao_unica );
     $self->add_parcelas2          ( $xml2 , $cart , $instrucao_unica );
@@ -564,15 +569,15 @@ sub add_formas_pagamento2 {
 
 sub add_entrega2 {
     my ( $self, $xml, $cart, $parent_node ) = @_;
-    if ( defined $cart->entrega ) {
+    if ( defined $cart->shipping ) {
         my $node_entrega = $xml->createElement('Entrega');
         $parent_node->addChild( $node_entrega );
-        if ( exists $cart->entrega->{destino} ) {
+        if ( exists $cart->shipping->{destino} ) {
             my $node = $xml->createElement('Destino');
-            $node->appendText($cart->entrega->{destino});
+            $node->appendText($cart->shipping->{destino});
             $node_entrega->addChild($node);
         }
-        foreach my $e ( @{ $cart->entrega->{ calculo_frete } } ) {
+        foreach my $e ( @{ $cart->shipping->{ calculo_frete } } ) {
             my $node_frete = $xml->createElement('CalculoFrete');
 
             if ( exists $e->{ tipo } ) {
@@ -585,9 +590,9 @@ sub add_entrega2 {
                 }
                 $node_frete->addChild( $node );
             }
-            if ( exists $e->{ valor_fixo } ) {
+            if ( exists $e->{ cost } ) {
                 my $node = $xml->createElement('ValorFixo');
-                $node->appendText($e->{ valor_fixo });
+                $node->appendText($e->{ cost });
                 $node_frete->addChild($node);
             }
             if ( exists $e->{ valor_percentual } ) {
@@ -733,11 +738,11 @@ sub add_parcelas2 {
 }
 
 
-sub add_id_proprio2 {
+sub add_payment_id2 {
     my ( $self, $xml, $cart, $parent_node ) = @_;
-    if ( $self->id_proprio ) {
+    if ( $cart->payment_id ) {
         my $node = $xml->createElement( 'IdProprio' );
-        $node->appendText( $self->id_proprio ); #TODO pode ser movido pro $cart
+        $node->appendText( $cart->payment_id ); #TODO pode ser movido pro $cart
         $parent_node->addChild( $node );
     }
 }
@@ -745,12 +750,35 @@ sub add_id_proprio2 {
 sub add_valores2 {
     my ( $self, $xml, $cart, $parent_node ) = @_;
     my $node = $xml->createElement( 'Valores' );
-    foreach my $item ( @{$cart->_items} ) {
-        my $node_valor = $xml->createElement('Valor');
-        $node_valor->setAttribute( 'moeda', $self->currency ); # TODO: currency pode ficar no cart. mover pra $cart
-        $node_valor->appendText( $item->price );
-        $node->addChild( $node_valor );
-    }
+    my $valor;
+
+    if ($self->transparent == 1) { 
+
+        foreach my $item (@{$cart->_items}) { 
+            $valor += $item->{price};
+        }
+
+        $valor += $cart->shipping->{cost}
+            if $cart->shipping->{cost};
+
+            my $node_valor = $xml->createElement('Valor');
+            $node_valor->setAttribute( 'moeda', $self->currency ); # TODO: currency pode ficar no cart. mover pra $cart
+            $node_valor->appendText( $valor );
+            $node->addChild( $node_valor );
+
+    } 
+
+    else {
+
+        foreach my $item ( @{$cart->_items} ) {
+            my $node_valor = $xml->createElement('Valor');
+            $node_valor->setAttribute( 'moeda', $self->currency ); # TODO: currency pode ficar no cart. mover pra $cart
+            $node_valor->appendText( $item->price );
+            $node->addChild( $node_valor );
+        }
+
+    }    
+
     $parent_node->addChild( $node );
 }
 
@@ -782,12 +810,12 @@ sub add_pagador2 {
             my $node = $xml->createElement('Email');
             $node->appendText( $cart->buyer->email );
             $node_pagador->addChild( $node );
-        }
-        if ( $cart->buyer->id_pagador ) {
-            my $node = $xml->createElement('IdPagador');
-            $node->appendText($cart->buyer->id_pagador);
+            
+            $node = $xml->createElement('IdPagador');
+            $node->appendText($cart->buyer->email);
             $node_pagador->addChild( $node );
         }
+        
         if (
             defined $cart->buyer->address_district  ||
             defined $cart->buyer->address_number    ||
@@ -861,42 +889,47 @@ sub add_pagador2 {
 
 sub add_boleto2 {
     my ( $self, $xml, $cart, $parent_node ) = @_;
+    
+    my ($date,$d, $m, $y);   
+
     if (
-            defined $cart->boleto
+            defined $cart->bank_slip
         ) {
         my $node_boleto = $xml->createElement('Boleto');
         $parent_node->addChild( $node_boleto );
-        if ( exists $cart->boleto->{ data_vencimento } ) {
+        if ( exists $cart->bank_slip->{ deadline_day } ) {
+
+            ($d, $m, $y) = localtime(time() - 60*60*24*$cart->bank_slip->{deadline_days});
+            $date = sprintf "%4d/%2d/%2d", $y+1900, $m+1, $d;
+
             my $node = $xml->createElement('DataVencimento');
-            $node->appendText($cart->boleto->{ data_vencimento });
+            $node->appendText($cart->bank_slip->{ deadline_days });
             $node_boleto->addChild($node);
         }
-        if ( exists $cart->boleto->{ instrucao1 } ) {
+        if ( exists $cart->bank_slip->{ intruction_line_1 } ) {
             my $node = $xml->createElement('Instrucao1');
-            $node->appendText($cart->boleto->{ instrucao1 });
+            $node->appendText($cart->bank_slip->{ intruction_line_1 });
             $node_boleto->addChild($node);
         }
-        if ( exists $cart->boleto->{ instrucao2 } ) {
+        if ( exists $cart->bank_slip->{ intruction_line_2 } ) {
             my $node = $xml->createElement('Instrucao2');
-            $node->appendText($cart->boleto->{ instrucao2 });
+            $node->appendText($cart->bank_slip->{ intruction_line_2 });
             $node_boleto->addChild($node);
         }
-        if ( exists $cart->boleto->{ instrucao3 } ) {
+        if ( exists $cart->bank_slip->{ intruction_line_3 } ) {
             my $node = $xml->createElement('Instrucao3');
-            $node->appendText($cart->boleto->{ instrucao3 });
+            $node->appendText($cart->bank_slip->{ intruction_line_3 });
             $node_boleto->addChild($node);
         }
-        if ( exists $cart->boleto->{ logo_url } ) {
+        if ( exists $cart->bank_slip->{ logo_url } ) {
             my $node = $xml->createElement('URLLogo');
-            $node->appendText($cart->boleto->{ logo_url });
+            $node->appendText($cart->bank_slip->{ logo_url });
             $node_boleto->addChild($node);
         }
-        if ( exists $cart->boleto->{ expiracao } ) {
             my $node = $xml->createElement('DiasExpiracao');
-            $node->setAttribute( 'Tipo' , $cart->boleto->{ expiracao }->{ tipo } );
-            $node->appendText($cart->boleto->{ expiracao }->{ dias });
+            $node->setAttribute( 'Tipo' , "Corridos" );
+            $node->appendText(($cart->bank_slip->{deadline_days} + 1));
             $node_boleto->addChild($node);
-        }
     }
 }
 
