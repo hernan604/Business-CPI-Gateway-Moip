@@ -161,4 +161,48 @@ has formas_pagamento => (
 has url_retorno     => ( is => 'rw' );
 has url_notificacao => ( is => 'rw' );
 
+
+=head2 valor_total
+
+=cut
+
+has valor_total     => (
+    is => 'rw',
+    coerce => \&stringified_money,
+);
+
+=head2 frete
+
+booleano. Indica se o MOIP vai usar o peso_compra para adicionar o valor do frete no seu carrinho. Ou seja, vc nao passa o valor do carrinho, o moip calcula e soma ao valor total do carrinho
+
+=cut
+
+has frete => (
+    is => 'rw',
+    default => sub { return 0 },
+);
+
+=head2 peso_compra
+
+indica qual o peso total da compra.
+O moip vai utilizar este valor para calcular o valor do frete pra vc. Vc não passa o valor do frete, o moip calcula.
+
+=cut
+
+has peso_compra => (
+    is => 'rw',
+    coerce => \&stringified_money,
+);
+
+has id_transacao => (
+    is => 'rw',
+);
+
+has description => (
+    is => 'rw',
+);
+
+
+sub stringified_money { $_[0] ? sprintf( "%.2f", 0 + $_[0] ) : $_[0] }
+
 1;

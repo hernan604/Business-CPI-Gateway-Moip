@@ -15,6 +15,31 @@ extends 'Business::CPI::Gateway::Base';
 
 our $VERSION     = '0.03';
 
+
+my $FORM_FIELDS = {
+    id_carteira     => { object => 'self', attr => 'receiver_email' },
+    valor           => { object => 'cart' , attr => 'valor_total' },
+    nome            => { object => 'buyer', attr => 'name' },
+    descricao       => { object => 'cart', attr => 'description' },
+    id_transacao    => { object => 'cart', attr => 'id_transacao' },
+    pagador_nome    => { object => 'buyer', attr => 'name' },
+    pagador_email   => { object => 'buyer', attr => 'email' },
+    pagador_telefone=> { object => 'buyer', attr => 'phone' },
+    pagador_logradouro => { object => 'buyer', attr => 'address_street' },
+    pagador_numero  => { object => 'buyer', attr => 'address_number' },
+    pagador_complemento => { object => 'buyer', attr => 'address_complement' },
+    pagador_bairro  => { object => 'buyer', attr => 'address_district' },
+    pagador_cep     => { object => 'buyer', attr => 'address_zip_code' },
+    pagador_cidade  => { object => 'buyer', attr => 'address_city' },
+    pagador_estado  => { object => 'buyer', attr => 'address_state' },
+    pagador_pais    => { object => 'buyer', attr => 'address_country' },
+    pagador_cpf     => { object => 'buyer', attr => 'document_id' },
+    url_retorno     => { object => 'cart', attr => 'url_retorno' },
+    frete           => { object => 'cart', attr => 'frete' },
+    peso_compra     => { object => 'cart', attr => 'peso_compra' },
+};
+
+
 =pod
 
 =encoding utf-8
@@ -934,59 +959,52 @@ sub add_boleto2 {
 }
 
 sub get_form_to_pay {
-    my ( $self ) = @_;
-    warn "RETORNA FORM PARA PAGAMENTO";
-    warn "RETORNA FORM PARA PAGAMENTO";
-    warn "RETORNA FORM PARA PAGAMENTO";
-    warn "RETORNA FORM PARA PAGAMENTO";
+    my ( $self, $cart ) = @_;
+
+    my $form = HTML::Element->new(
+        'form',
+        action => 'POST',
+        method => $self->form_url,
+    );
+
+    foreach my $field ( keys $FORM_FIELDS ) {
+        my $object  = $FORM_FIELDS->{ $field }->{object};
+        my $attr    = $FORM_FIELDS->{ $field }->{attr};
+        my $value;
+        if ( $object eq 'self' ) {
+            $value = $self->$attr;
+        }
+        elsif ( $object eq 'cart' ) {
+            $value = $cart->$attr;
+        }
+        else {
+            $value = $cart->$object->$attr;
+        }
+        if ( defined $value ) {
+            $form->push_content(
+                HTML::Element->new(
+                    'input',
+                    type  => 'hidden',
+                    value => $value,
+                    name  => $field,
+                )
+            );
+        }
+    }
+
+    warn p $form->as_HTML();
+
+    $form->push_content(
+        HTML::Element->new(
+            'input',
+            name  => 'ENViAR', #TODO pegar este valor do mesmo campo do ::PayPal
+            type  => 'submit',
+            value => 'ENViAR',
+        )
+    );
+
+    return $form;
 }
-
-sub get_hidden_inputs {
-    my ($self, $info) = @_;
-    warn p $self;
-    warn "^^ SELF ^^" ;
-    warn "^^ SELF ^^" ;
-    warn "^^ SELF ^^" ;
-#   return (
-#       reference => $info->{payment_id},
-#       $self->_get_hidden_inputs_main(),
-#       $self->_get_hidden_inputs_for_buyer($info->{buyer}),
-#       $self->_get_hidden_inputs_for_items($info->{items}),
-#       $self->_get_hidden_inputs_for_cart($info->{cart}),
-#   );
-}
-
-#   sub _checkout_form_main_map {
-#       return {
-#           receiver_email => 'receiver_email',
-#           currency       => 'currency',
-#           form_encoding  => 'encoding',
-#       };
-#   }
-
-#   sub _checkout_form_buyer_map {
-#       return {
-#           name               => 'senderName',
-#           email              => 'senderEmail',
-#           address_complement => 'shippingAddressComplement',
-#           address_district   => 'shippingAddressDistrict',
-#           address_street     => 'shippingAddressStreet',
-#           address_number     => 'shippingAddressNumber',
-#           address_city       => 'shippingAddressCity',
-#           address_state      => 'shippingAddressState',
-#           address_zip_code   => 'shippingAddressPostalCode',
-#           address_country    => {
-#               name => 'shippingAddressCountry',
-#               coerce => sub {
-#                   uc(
-#                       Locale::Country::country_code2code(
-#                           $_[0], 'alpha-2', 'alpha-3'
-#                       )
-#                   )
-#               },
-#           },
-#       };
-#   }
 
 
 =head2 query_transactions()
@@ -1099,6 +1117,8 @@ http://www.nixus.com.br
 perl(1).
 
 =cut
+
+sub stringified_money { $_[0] ? sprintf( "%.2f", 0 + $_[0] ) : $_[0] }
 
 1;
 # The preceding line will help the module return a true value
