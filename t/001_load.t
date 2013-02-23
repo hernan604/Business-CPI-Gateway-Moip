@@ -14,6 +14,7 @@ ok(my $cpi = Business::CPI::Gateway::Moip->new(
     sandbox         => 1,
     token_acesso    => 'YC110LQX7UQXEMQPLYOPZ1LV9EWA8VKD',
     chave_acesso    => 'K03JZXJLOKJNX0CNL0NPGGTHTMGBFFSKNX6IUUWV',
+    email_acesso    => 'hernannixus@hotmail.com',
     receiver_email  => 'teste@xxxxx.com.br',
     receiver_label  => 'Lojas X',
     id_proprio      => 'ID_INTERNO_'.int rand(int rand(99999999)),
@@ -23,9 +24,15 @@ ok(my $cpi = Business::CPI::Gateway::Moip->new(
 isa_ok($cpi, 'Business::CPI::Gateway::Moip');
 
 ok(my $cart = $cpi->new_cart({
+    valor_total => 1.2,
+    id_transacao => 'id-transacao-xxx'. int rand(999999),
+    description => 'Compra Produto XYZ, titulo compra',
+    frete => 1, #booleano. Indica se o MOIP vai usar o peso_compra para adicionar o valor do frete no seu carrinho. Ou seja, vc nao passa o valor do carrinho, o moip calcula e soma ao valor total do carrinho
+    peso_compra => 70.1,
     buyer => {
         name               => 'Mr. Buyer',
         email              => 'sender@andrewalker.net',
+        document_id        => '914.123.444-72', # CPF ou CNPJ apenas quando usar <form> p/ pagar
         address_street     => 'Rua Itagyba Santiago',
         address_number     => '360',
         address_district   => 'Vila Mascote',
@@ -131,10 +138,11 @@ my $res = $cpi->make_xml_transaction( $cart );
 warn p $res;
 
 
-my $form = $cart->get_form_to_pay('xxxxxx');
-warn $form;
-#warn p $form->as_HTML();
-#warn "^^formulario^^";
+my $form = $cpi->get_form_to_pay( $cart );
+my $form_html = $form->as_HTML();
+
+is( $form_html =~ m/pagador_telefone" type="hidden" value="11-9911-0022"/, 1, 'trouxe valor esperado' );
+#TODO no teste acima, transformar de volta em HTML::Element e verificar campo a campo.. pois fiz um exemplo rapido verificando via string... mas não é bom pois pode não manter a mesma ordem nos atributos
 
 ok( $res->{code} eq 'SUCCESS', 'pagamento feito com sucesso');
 done_testing();

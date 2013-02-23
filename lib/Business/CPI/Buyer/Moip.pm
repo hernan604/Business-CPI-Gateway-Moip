@@ -37,4 +37,6 @@ has id_pagador => (
     is => 'rw',
 );
 
+has document_id => ( is => 'rw' );
+
 1;
