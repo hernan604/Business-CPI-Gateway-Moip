@@ -132,8 +132,9 @@ warn p $res;
 
 
 my $form = $cart->get_form_to_pay('xxxxxx');
-warn p $form->as_HTML();
-warn "^^formulario^^";
+warn $form;
+#warn p $form->as_HTML();
+#warn "^^formulario^^";
 
 ok( $res->{code} eq 'SUCCESS', 'pagamento feito com sucesso');
 done_testing();

@@ -326,6 +326,17 @@ has 'api_url' => (
     is => 'rw',
 );
 
+=head2 form_url
+
+Holds the form_url.
+Will be used in <form action="...">
+
+=cut
+
+has 'form_url' => (
+    is => 'rw',
+);
+
 =head2 token_acesso
 
 Moip token
@@ -399,8 +410,10 @@ sub BUILD {
     my $self = shift;
     if ( $self->sandbox ) {
         $self->api_url('https://desenvolvedor.moip.com.br/sandbox/ws/alpha/EnviarInstrucao/Unica');
+        $self->form_url( "https://desenvolvedor.moip.com.br/sandbox/PagamentoMoIP.do" );
     } else {
         $self->api_url('https://www.moip.com.br/ws/alpha/EnviarInstrucao/Unica');
+        $self->form_url( "https://www.moip.com.br/PagamentoMoIP.do" );
     }
 };
 
@@ -514,7 +527,7 @@ sub payment_to_xml {
     $self->add_comissoes2         ( $xml2 , $cart , $instrucao_unica );
     $self->add_entrega2           ( $xml2 , $cart , $instrucao_unica );
 
-warn p $xml2->toString();
+#   warn p $xml2->toString();
     return $xml2->toString();
 }
 
@@ -885,6 +898,14 @@ sub add_boleto2 {
             $node_boleto->addChild($node);
         }
     }
+}
+
+sub get_form_to_pay {
+    my ( $self ) = @_;
+    warn "RETORNA FORM PARA PAGAMENTO";
+    warn "RETORNA FORM PARA PAGAMENTO";
+    warn "RETORNA FORM PARA PAGAMENTO";
+    warn "RETORNA FORM PARA PAGAMENTO";
 }
 
 sub get_hidden_inputs {
