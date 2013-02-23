@@ -7,6 +7,10 @@ use indirect;
 use multidimensional;
 use HTTP::Tiny;
 use Data::Dumper;
+use XML::LibXML;
+use Data::Printer;
+use Locale::Country;
+
 extends 'Business::CPI::Gateway::Base';
 
 our $VERSION     = '0.03';
@@ -489,220 +493,287 @@ sub payment_to_xml {
     $self->log->debug("\$cart: " . Dumper( $cart));
     $self->log->debug("\$cart->buyer: " . Dumper( $cart->buyer));
 
-    my $xml;
+    my $xml2 = XML::LibXML::Document->new('1.0','utf-8');
+    my $enviar_instrucao = $xml2->createElement('EnviarInstrucao');
+    $xml2->addChild( $enviar_instrucao );
 
-    $xml = "<EnviarInstrucao>
-                <InstrucaoUnica TipoValidacao=\"Transparente\">";
+    my $instrucao_unica = $xml2->createElement('InstrucaoUnica');
+    $instrucao_unica->setAttribute( 'TipoValidacao', 'Transparente' );
+    $enviar_instrucao->addChild( $instrucao_unica );
 
-    $xml = $self->add_url_retorno       ( $xml, $cart );
-    $xml = $self->add_url_notificacao   ( $xml, $cart );
-    $xml = $self->add_formas_pagamento  ( $xml, $cart );
-    $xml = $self->add_mensagens         ( $xml, $cart );
-    $xml = $self->add_razao             ( $xml, $cart );
-    $xml = $self->add_valores           ( $xml, $cart );
-    $xml = $self->add_id_proprio        ( $xml, $cart );
-    $xml = $self->add_pagador           ( $xml, $cart );
-    $xml = $self->add_boleto            ( $xml, $cart );
-    $xml = $self->add_parcelas          ( $xml, $cart );
-    $xml = $self->add_comissoes         ( $xml, $cart );
-    $xml = $self->add_entrega           ( $xml, $cart );
+    $self->add_url_retorno2       ( $xml2 , $cart , $instrucao_unica );
+    $self->add_url_notificacao2   ( $xml2 , $cart , $instrucao_unica );
+    $self->add_formas_pagamento2  ( $xml2 , $cart , $instrucao_unica );
+    $self->add_mensagens2         ( $xml2 , $cart , $instrucao_unica );
+    $self->add_razao2             ( $xml2 , $cart , $instrucao_unica );
+    $self->add_valores2           ( $xml2 , $cart , $instrucao_unica );
+    $self->add_id_proprio2        ( $xml2 , $cart , $instrucao_unica );
+    $self->add_pagador2           ( $xml2 , $cart , $instrucao_unica );
+    $self->add_boleto2            ( $xml2 , $cart , $instrucao_unica );
+    $self->add_parcelas2          ( $xml2 , $cart , $instrucao_unica );
+    $self->add_comissoes2         ( $xml2 , $cart , $instrucao_unica );
+    $self->add_entrega2           ( $xml2 , $cart , $instrucao_unica );
 
-    $xml .= "\n</InstrucaoUnica>
-        </EnviarInstrucao>";
-
-    return $xml;
+warn p $xml2->toString();
+    return $xml2->toString();
 }
 
-sub add_url_retorno {
-    my ( $self, $xml , $cart ) = @_;
+sub add_url_retorno2 {
+    my ( $self, $xml , $cart, $parent_node ) = @_;
     if ( defined $cart->url_retorno ) {
-        $xml .= "<URLRetorno>".$cart->url_retorno."</URLRetorno>";
+        my $url_retorno = $xml->createElement( 'URLRetorno' );
+        $url_retorno->appendText( $cart->url_retorno );
+        $parent_node->addChild( $url_retorno );
     }
-    return $xml;
 }
 
-sub add_url_notificacao {
-    my ( $self, $xml , $cart ) = @_;
+sub add_url_notificacao2 {
+    my ( $self, $xml , $cart, $parent_node ) = @_;
     if ( defined $cart->url_notificacao ) {
-        $xml .= "<URLNotificacao>".$cart->url_notificacao."</URLNotificacao>";
+        my $node = $xml->createElement( 'URLNotificacao' );
+        $node->appendText( $cart->url_notificacao );
+        $parent_node->addChild( $node );
     }
-    return $xml;
 }
 
-sub add_formas_pagamento {
-    my ( $self, $xml , $cart ) = @_;
+sub add_formas_pagamento2 {
+    my ( $self, $xml , $cart, $parent_node ) = @_;
     if ( defined $cart->formas_pagamento and ref $cart->formas_pagamento eq ref [] ) {
-        $xml .= "<FormasPagamento>";
+        my $node = $xml->createElement('FormasPagamento');
         foreach my $forma ( @{ $cart->formas_pagamento } ) {
-            $xml .= "<FormaPagamento>".$forma."</FormaPagamento>";
+            my $node_forma = $xml->createElement('FormaPagamento');
+            $node_forma->appendText( $forma );
+            $node->appendChild( $node_forma );
         }
-        $xml .= "</FormasPagamento>";
+        $parent_node->appendChild( $node );
     }
-    return $xml;
 }
 
-sub add_entrega {
-    my ( $self, $xml, $cart ) = @_;
+sub add_entrega2 {
+    my ( $self, $xml, $cart, $parent_node ) = @_;
     if ( defined $cart->entrega ) {
-        $xml .= "<Entrega>";
+        my $node_entrega = $xml->createElement('Entrega');
+        $parent_node->addChild( $node_entrega );
         if ( exists $cart->entrega->{destino} ) {
-            $xml .= "<Destino>".$cart->entrega->{destino}."</Destino>";
+            my $node = $xml->createElement('Destino');
+            $node->appendText($cart->entrega->{destino});
+            $node_entrega->addChild($node);
         }
         foreach my $e ( @{ $cart->entrega->{ calculo_frete } } ) {
-            $xml .= "<CalculoFrete>";
+            my $node_frete = $xml->createElement('CalculoFrete');
+
             if ( exists $e->{ tipo } ) {
-                $xml .= "<Tipo>Proprio</Tipo>"  if $e->{ tipo } =~ m/proprio/ig;
-                $xml .= "<Tipo>Correios</Tipo>" if $e->{ tipo } =~ m/correio/ig;
+                my $node = $xml->createElement('Tipo');
+                if ( $e->{ tipo } =~ m/proprio/ig ) {
+                    $node->appendText('Proprio');
+                }
+                elsif ( $e->{ tipo } =~ m/correio/ig ) {
+                    $node->appendText('Correios');
+                }
+                $node_frete->addChild( $node );
             }
             if ( exists $e->{ valor_fixo } ) {
-                $xml .= "<ValorFixo>".$e->{ valor_fixo }."</ValorFixo>";
+                my $node = $xml->createElement('ValorFixo');
+                $node->appendText($e->{ valor_fixo });
+                $node_frete->addChild($node);
             }
             if ( exists $e->{ valor_percentual } ) {
-                $xml .= "<ValorPercentual>". $e->{ valor_percentual } ."</ValorPercentual>";
+                my $node = $xml->createElement('ValorPercentual');
+                $node->appendText( $e->{ valor_percentual } );
+                $node_frete->addChild($node);
             }
             if ( exists $e->{ prazo } and
                  exists $e->{ prazo }->{ valor } and
                  exists $e->{ prazo }->{ tipo }
             ) {
                 if ( $e->{ prazo }->{ tipo } =~ m/corridos/ig ) {
-                    $xml .= '<Prazo Tipo="Corridos">'.$e->{ prazo }->{ valor }.'</Prazo>' ;
+                    my $node_prazo = $xml->createElement('Prazo');
+                    $node_prazo->setAttribute( 'Tipo', 'Corridos' );
+                    $node_prazo->appendText( $e->{ prazo }->{ valor } );
+                    $node_frete->addChild( $node_prazo );
                 }
                 if ($e->{ prazo }->{ tipo } =~ m/uteis/ig ) {
-                    $xml .= '<Prazo Tipo="Uteis">'.   $e->{ prazo }->{ valor }.'</Prazo>' ;
+                    my $node_prazo = $xml->createElement('Prazo');
+                    $node_prazo->setAttribute( 'Tipo', 'Uteis' );
+                    $node_prazo->appendText( $e->{ prazo }->{ valor } );
+                    $node_frete->addChild( $node_prazo );
                 }
             }
             if ( exists $e->{ correios } ) {
-                $xml .= "<Correios>";
+                my $node_correios = $xml->createElement('Correios');
+                $node_frete->addChild( $node_correios );
                 if ( exists $e->{correios}->{peso_total} ) {
-                    $xml .= "<PesoTotal>".$e->{correios}->{peso_total}."</PesoTotal>";
+                    my $node = $xml->createElement('PesoTotal');
+                    $node->appendText($e->{correios}->{peso_total});
+                    $node_correios->addChild($node);
                 }
                 if ( exists $e->{correios}->{forma_entrega} ) {
-                    $xml .= "<FormaEntrega>".$e->{correios}->{forma_entrega}."</FormaEntrega>";
+                    my $node = $xml->createElement('FormaEntrega');
+                    $node->appendText($e->{correios}->{forma_entrega});
+                    $node_correios->addChild($node);
                 }
                 if ( exists $e->{correios}->{mao_propria} ) {
-                    $xml .= "<MaoPropria>".$e->{correios}->{mao_propria}."</MaoPropria>";
+                    my $node = $xml->createElement('MaoPropria');
+                    $node->appendText($e->{correios}->{mao_propria});
+                    $node_correios->addChild($node);
                 }
                 if ( exists $e->{correios}->{valor_delarado} ) {
-                    $xml .= "<ValorDeclarado>".$e->{correios}->{valor_declarado}."</ValorDeclarado>";
+                    my $node = $xml->createElement('ValorDeclarado');
+                    $node->appendText($e->{correios}->{valor_declarado});
+                    $node_correios->addChild($node);
                 }
                 if ( exists $e->{correios}->{aviso_recebimento} ) {
-                    $xml .= "<AvisoRecebimento>".$e->{correios}->{aviso_recebimento}."</AvisoRecebimento>";
+                    my $node = $xml->createElement('AvisoRecebimento');
+                    $node->appendText($e->{correios}->{aviso_recebimento});
+                    $node_correios->addChild($node);
                 }
                 if ( exists $e->{correios}->{cep_origem} ) {
-                    $xml .= "<CepOrigem>".$e->{correios}->{cep_origem}."</CepOrigem>";
+                    my $node = $xml->createElement('CepOrigem');
+                    $node->appendText($e->{correios}->{cep_origem});
+                    $node_correios->addChild($node);
                 }
-                $xml .= "</Correios>";
             }
-            $xml .= "</CalculoFrete>";
         }
-        $xml .= "</Entrega>";
     }
-    return $xml;
 }
 
-sub add_razao {
-    my ( $self, $xml, $cart ) = @_;
-    $xml .= "<Razao>Pagamento para loja ".$self->receiver_label." </Razao>";
-    return $xml;
+sub add_razao2 {
+    my ( $self, $xml, $cart, $parent_node ) = @_;
+    my $node = $xml->createElement( 'Razao' );
+    $node->appendText( "Pagamento para loja ".$self->receiver_label );
+    $parent_node->addChild( $node );
 }
 
-sub add_comissoes {
-    my ( $self, $xml, $cart ) = @_;
+
+sub add_comissoes2 {
+    my ( $self, $xml, $cart, $parent_node ) = @_;
     if ( defined $cart->comissoes || defined $cart->pagador_taxa ) {
-        $xml .= "\n<Comissoes>";
+        my $node_comissoes = $xml->createElement('Comissoes');
+        $parent_node->addChild( $node_comissoes );
         if ( defined $cart->comissoes ) {
             foreach my $comissao ( @{ $cart->comissoes } ) {
-                $xml .= "\n<Comissionamento>";
+                my $node_comissionamento = $xml->createElement('Comissionamento');
+                $node_comissoes->addChild( $node_comissionamento );
                 if ( exists $comissao->{razao} ) {
-                    $xml .= "\n<Razao>".$comissao->{razao}."</Razao>" if exists $comissao->{razao};
+                    my $node = $xml->createElement('Razao');
+                    $node->appendText($comissao->{razao});
+                    $node_comissionamento->addChild($node);
                 }
                 if ( exists $comissao->{login_moip} ) {
-                    $xml .= "\n<Comissionado><LoginMoIP>".$comissao->{login_moip}."</LoginMoIP></Comissionado>"
+                    my $node_comissionado = $xml->createElement( 'Comissionado' );
+                    my $node_login_moip = $xml->createElement( 'LoginMoIP' );
+                    $node_login_moip->appendText($comissao->{login_moip});
+                    $node_comissionado->addChild( $node_login_moip );
+                    $node_comissionamento->addChild( $node_comissionado );
                 }
                 if ( exists $comissao->{valor_percentual} ) {
-                    $xml .= "\n<ValorPercentual>".$comissao->{valor_percentual}."</ValorPercentual>";
+                    my $node = $xml->createElement('ValorPercentual');
+                    $node->appendText($comissao->{valor_percentual});
+                    $node_comissionamento->addChild( $node );
                 }
                 if ( exists $comissao->{valor_fixo} ) {
-                    $xml .= "\n<ValorFixo>".$comissao->{valor_fixo}."</ValorFixo>";
+                    my $node = $xml->createElement('ValorFixo');
+                    $node->appendText($comissao->{valor_fixo});
+                    $node_comissionamento->addChild( $node );
                 }
-                $xml .= "\n</Comissionamento>";
             }
         }
         if ( defined $cart->pagador_taxa ) {
-            $xml .= "\n<PagadorTaxa><LoginMoIP>".$cart->pagador_taxa."</LoginMoIP></PagadorTaxa>";
+            my $node_pagador_taxa = $xml->createElement('PagadorTaxa');
+            my $node_login_moip = $xml->createElement('LoginMoIP');
+            $node_login_moip->appendText( $cart->pagador_taxa );
+            $node_pagador_taxa->addChild( $node_login_moip );
+            $node_comissoes->addChild( $node_pagador_taxa );
         }
-        $xml .= "\n</Comissoes>";
     }
-    return $xml;
 }
 
-sub add_parcelas {
-    my ( $self, $xml, $cart ) = @_;
+sub add_parcelas2 {
+    my ( $self, $xml, $cart, $parent_node ) = @_;
     if ( defined $cart->parcelas and scalar @{ $cart->parcelas } > 0 ) {
-        $xml .= "\n<Parcelamentos>";
+        my $node_parcelamentos = $xml->createElement('Parcelamentos');
+        $parent_node->addChild( $node_parcelamentos );
         foreach my $parcela ( @{ $cart->parcelas } ) {
             if ( defined $parcela->{parcelas_max} and defined $parcela->{parcelas_min} ) {
-                $xml .= "\n<Parcelamento>";
-                        if ( defined $parcela->{parcelas_min}  ) {
-                            $xml .= "\n<MinimoParcelas>".$parcela->{parcelas_min}."</MinimoParcelas>";
-                        }
-                        if ( defined $parcela->{parcelas_max} ) {
-                            $xml .= "\n<MaximoParcelas>".$parcela->{parcelas_max}."</MaximoParcelas>";
-                        }
-                        $xml .= "\n<Juros>"; $xml .= ( defined $parcela->{juros} )?$parcela->{juros}:'0'; $xml .= "</Juros>";
-                $xml .= "\n</Parcelamento>";
+                my $node_parcelamento = $xml->createElement('Parcelamento');
+                $node_parcelamentos->addChild( $node_parcelamento );
+
+                if ( defined $parcela->{parcelas_min}  ) {
+                    my $node_parcela_min = $xml->createElement( 'MinimoParcelas' );
+                    $node_parcela_min->appendText( $parcela->{parcelas_min} );
+                    $node_parcelamento->addChild( $node_parcela_min );
+                }
+                if ( defined $parcela->{parcelas_max} ) {
+                    my $node_parcela_max = $xml->createElement( 'MaximoParcelas' );
+                    $node_parcela_max->appendText( $parcela->{parcelas_max} );
+                    $node_parcelamento->addChild( $node_parcela_max );
+                }
+                my $node_juros = $xml->createElement('Juros');
+                $node_parcelamento->addChild( $node_juros );
+                $node_juros->appendText( 0 );
+                if ( exists $parcela->{juros} ) {
+                    $node_juros->appendText( $parcela->{ juros } );
+                }
             }
         }
-        $xml .= "\n</Parcelamentos>";
     }
-    return $xml;
 }
 
-sub add_id_proprio {
-    my ( $self, $xml, $cart ) = @_;
-    # id proprio
+
+sub add_id_proprio2 {
+    my ( $self, $xml, $cart, $parent_node ) = @_;
     if ( $self->id_proprio ) {
-        $xml .=     "\n<IdProprio>". $self->id_proprio ."</IdProprio>";
+        my $node = $xml->createElement( 'IdProprio' );
+        $node->appendText( $self->id_proprio ); #TODO pode ser movido pro $cart
+        $parent_node->addChild( $node );
     }
-    return $xml;
 }
 
-sub add_valores {
-    my ( $self, $xml, $cart ) = @_;
-    $xml .= "<Valores>";
-    # valores
+sub add_valores2 {
+    my ( $self, $xml, $cart, $parent_node ) = @_;
+    my $node = $xml->createElement( 'Valores' );
     foreach my $item ( @{$cart->_items} ) {
-        $xml .=             "\n<Valor moeda=\"BRL\">".$item->price."</Valor>";
+        my $node_valor = $xml->createElement('Valor');
+        $node_valor->setAttribute( 'moeda', $self->currency ); # TODO: currency pode ficar no cart. mover pra $cart
+        $node_valor->appendText( $item->price );
+        $node->addChild( $node_valor );
     }
-    $xml .=             "\n</Valores>";
-    return $xml;
+    $parent_node->addChild( $node );
 }
 
-sub add_mensagens {
-    my ( $self, $xml, $cart ) = @_;
+sub add_mensagens2 {
+    my ( $self, $xml, $cart, $parent_node ) = @_;
     if ( defined $cart->mensagens and scalar @{ $cart->mensagens } > 0 ) {
-        $xml .= "<Mensagens>";
+        my $node = $xml->createElement( 'Mensagens' );
         foreach my $msg ( @{ $cart->mensagens } ) {
-            $xml .= "<Mensagem>".$msg."</Mensagem>";
+            my $node_msg = $xml->createElement( 'Mensagem' );
+            $node_msg->appendText( $msg );
+            $node->addChild( $node_msg );
         }
-        $xml .= "</Mensagens>";
+        $parent_node->addChild( $node );
     }
-    return $xml;
 }
 
-sub add_pagador {
-    my ( $self, $xml, $cart ) = @_;
+sub add_pagador2 {
+    my ( $self, $xml, $cart, $parent_node ) = @_;
     # dados do pagador
     if ( $cart->buyer ) {
-        $xml .= "\n<Pagador>";
+        my $node_pagador = $xml->createElement('Pagador');
+        $parent_node->addChild( $node_pagador );
         if ( $cart->buyer->name ) {
-                $xml .= "\n<Nome>".$cart->buyer->name."</Nome>";
+            my $node = $xml->createElement('Nome');
+            $node->appendText( $cart->buyer->name );
+            $node_pagador->addChild( $node );
         }
         if ( $cart->buyer->email ) {
-                $xml .= "\n<Email>".$cart->buyer->email."</Email>";
+            my $node = $xml->createElement('Email');
+            $node->appendText( $cart->buyer->email );
+            $node_pagador->addChild( $node );
         }
         if ( $cart->buyer->id_pagador ) {
-                $xml .= "\n<IdPagador>".$cart->buyer->id_pagador."</IdPagador>";
+            my $node = $xml->createElement('IdPagador');
+            $node->appendText($cart->buyer->id_pagador);
+            $node_pagador->addChild( $node );
         }
         if (
             defined $cart->buyer->address_district  ||
@@ -713,24 +784,43 @@ sub add_pagador {
             defined $cart->buyer->address_street    ||
             defined $cart->buyer->address_zip_code
         ) {
-            $xml .= "\n<EnderecoCobranca>";
+            my $node_cobranca = $xml->createElement('EnderecoCobranca');
+            $node_pagador->addChild( $node_cobranca );
             if ( defined $cart->buyer->address_street ) {
-                $xml .= "\n<Logradouro>".$cart->buyer->address_street."</Logradouro>";
+                my $node = $xml->createElement('Logradouro');
+                $node->appendText($cart->buyer->address_street);
+                $node_cobranca->addChild($node);
+
             }
             if ( defined $cart->buyer->address_number ) {
-                $xml .= "\n<Numero>".$cart->buyer->address_number."</Numero>";
+                my $node = $xml->createElement('Numero');
+                $node->appendText($cart->buyer->address_number);
+                $node_cobranca->addChild($node);
+
             }
             if ( defined $cart->buyer->address_complement ) {
-                $xml .= "\n<Complemento>".$cart->buyer->address_complement."</Complemento>";
+                my $node = $xml->createElement('Complemento');
+                $node->appendText($cart->buyer->address_complement);
+                $node_cobranca->addChild($node);
+
             }
             if ( defined $cart->buyer->address_district ) {
-                $xml .= "\n<Bairro>".$cart->buyer->address_district."</Bairro>";
+                my $node = $xml->createElement('Bairro');
+                $node->appendText($cart->buyer->address_district);
+                $node_cobranca->addChild($node);
+
             }
             if ( defined $cart->buyer->address_city ) {
-                $xml .= "\n<Cidade>".$cart->buyer->address_city."</Cidade>";
+                my $node = $xml->createElement('Cidade');
+                $node->appendText($cart->buyer->address_city);
+                $node_cobranca->addChild($node);
+
             }
             if ( defined $cart->buyer->address_state ) {
-                $xml .= "\n<Estado>".$cart->buyer->address_state."</Estado>";
+                my $node = $xml->createElement('Estado');
+                $node->appendText($cart->buyer->address_state);
+                $node_cobranca->addChild($node);
+
             }
             if ( defined $cart->buyer->address_country ) {
                 my $sigla = uc(
@@ -738,54 +828,112 @@ sub add_pagador {
                         $cart->buyer->address_country, 'alpha-2', 'alpha-3'
                     )
                 );
-                $xml .= "\n<Pais>".$sigla."</Pais>";
+                my $node = $xml->createElement('Pais');
+                $node->appendText($sigla);
+                $node_cobranca->addChild($node);
             }
             if ( defined $cart->buyer->address_zip_code ) {
-                $xml .= "\n<CEP>".$cart->buyer->address_zip_code."</CEP>";
+                my $node = $xml->createElement('CEP');
+                $node->appendText($cart->buyer->address_zip_code);
+                $node_cobranca->addChild($node);
             }
             if ( defined $cart->buyer->phone ) {
-                $xml .= "\n<TelefoneFixo>".$cart->buyer->phone."</TelefoneFixo>";
+                my $node = $xml->createElement('TelefoneFixo');
+                $node->appendText($cart->buyer->phone);
+                $node_cobranca->addChild($node);
             }
-            $xml .= "\n</EnderecoCobranca>";
         }
-        $xml .= "</Pagador>";
     }
-    return $xml;
 }
 
-sub add_boleto {
-    my ( $self, $xml, $cart ) = @_;
+sub add_boleto2 {
+    my ( $self, $xml, $cart, $parent_node ) = @_;
     if (
             defined $cart->boleto
         ) {
-        $xml .= "\n<Boleto>";
+        my $node_boleto = $xml->createElement('Boleto');
+        $parent_node->addChild( $node_boleto );
         if ( exists $cart->boleto->{ data_vencimento } ) {
-            $xml .= "\n<DataVencimento>".$cart->boleto->{ data_vencimento }."</DataVencimento>";
+            my $node = $xml->createElement('DataVencimento');
+            $node->appendText($cart->boleto->{ data_vencimento });
+            $node_boleto->addChild($node);
         }
         if ( exists $cart->boleto->{ instrucao1 } ) {
-            $xml .= "\n<Instrucao1>".$cart->boleto->{ instrucao1 }."</Instrucao1>";
+            my $node = $xml->createElement('Instrucao1');
+            $node->appendText($cart->boleto->{ instrucao1 });
+            $node_boleto->addChild($node);
         }
         if ( exists $cart->boleto->{ instrucao2 } ) {
-            $xml .= "\n<Instrucao2>".$cart->boleto->{ instrucao2 }."</Instrucao2>";
+            my $node = $xml->createElement('Instrucao2');
+            $node->appendText($cart->boleto->{ instrucao2 });
+            $node_boleto->addChild($node);
         }
         if ( exists $cart->boleto->{ instrucao3 } ) {
-            $xml .= "\n<Instrucao3>".$cart->boleto->{ instrucao3 }."</Instrucao3>";
+            my $node = $xml->createElement('Instrucao3');
+            $node->appendText($cart->boleto->{ instrucao3 });
+            $node_boleto->addChild($node);
         }
         if ( exists $cart->boleto->{ logo_url } ) {
-            $xml .= "\n<URLLogo>".$cart->boleto->{ logo_url }."</URLLogo>";
+            my $node = $xml->createElement('URLLogo');
+            $node->appendText($cart->boleto->{ logo_url });
+            $node_boleto->addChild($node);
         }
         if ( exists $cart->boleto->{ expiracao } ) {
-            my $tipo='';
-            if ( exists $cart->boleto->{ expiracao }->{ tipo } ) {
-                $tipo = ' Tipo="Corridos"' if $cart->boleto->{ expiracao }->{ tipo } =~ m/corridos/gi;
-                $tipo = ' Tipo="Uteis"' if $cart->boleto->{ expiracao }->{ tipo } =~ m/uteis/gi;
-            }
-            $xml .= "\n<DiasExpiracao$tipo>".$cart->boleto->{ expiracao }->{ dias }."</DiasExpiracao>";
+            my $node = $xml->createElement('DiasExpiracao');
+            $node->setAttribute( 'Tipo' , $cart->boleto->{ expiracao }->{ tipo } );
+            $node->appendText($cart->boleto->{ expiracao }->{ dias });
+            $node_boleto->addChild($node);
         }
-        $xml .= "\n</Boleto>";
     }
-    return $xml;
 }
+
+sub get_hidden_inputs {
+    my ($self, $info) = @_;
+    warn p $self;
+    warn "^^ SELF ^^" ;
+    warn "^^ SELF ^^" ;
+    warn "^^ SELF ^^" ;
+#   return (
+#       reference => $info->{payment_id},
+#       $self->_get_hidden_inputs_main(),
+#       $self->_get_hidden_inputs_for_buyer($info->{buyer}),
+#       $self->_get_hidden_inputs_for_items($info->{items}),
+#       $self->_get_hidden_inputs_for_cart($info->{cart}),
+#   );
+}
+
+#   sub _checkout_form_main_map {
+#       return {
+#           receiver_email => 'receiver_email',
+#           currency       => 'currency',
+#           form_encoding  => 'encoding',
+#       };
+#   }
+
+#   sub _checkout_form_buyer_map {
+#       return {
+#           name               => 'senderName',
+#           email              => 'senderEmail',
+#           address_complement => 'shippingAddressComplement',
+#           address_district   => 'shippingAddressDistrict',
+#           address_street     => 'shippingAddressStreet',
+#           address_number     => 'shippingAddressNumber',
+#           address_city       => 'shippingAddressCity',
+#           address_state      => 'shippingAddressState',
+#           address_zip_code   => 'shippingAddressPostalCode',
+#           address_country    => {
+#               name => 'shippingAddressCountry',
+#               coerce => sub {
+#                   uc(
+#                       Locale::Country::country_code2code(
+#                           $_[0], 'alpha-2', 'alpha-3'
+#                       )
+#                   )
+#               },
+#           },
+#       };
+#   }
+
 
 =head2 query_transactions()
 

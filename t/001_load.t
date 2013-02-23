@@ -130,5 +130,10 @@ ok(my $item = $cart->add_item({
 my $res = $cpi->make_xml_transaction( $cart );
 warn p $res;
 
+
+my $form = $cart->get_form_to_pay('xxxxxx');
+warn p $form->as_HTML();
+warn "^^formulario^^";
+
 ok( $res->{code} eq 'SUCCESS', 'pagamento feito com sucesso');
 done_testing();
